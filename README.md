@@ -208,5 +208,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**💙 Made with love by [FUSIONIFYDIGUTAL.ID](https://linktr.ee/fusionifytempest)**
+**💙 Made with love by [FUSIONIFY DIGITAL.ID](https://linktr.ee/fusionifytempest)**
+
 
