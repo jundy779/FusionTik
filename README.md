@@ -39,12 +39,14 @@ FusionTik is your go-to solution for downloading TikTok content effortlessly. Wh
 ### Get Started
 
 1. **Clone the repository:**
+
 ```bash
 git clone https://github.com/jundy779/FusionTik.git
 cd FusionTik
 ```
 
 2. **Install dependencies:**
+
 ```bash
 npm install
 # or
@@ -58,21 +60,24 @@ pnpm install
 ### Development
 
 Start the development server:
+
 ```bash
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to see FusionTik in action!
+Visit <http://localhost:3000> to see FusionTik in action!
 
 ### Production
 
 Build for production:
+
 ```bash
 npm run build
 npm run start
 ```
 
 Customize the port:
+
 ```bash
 PORT=8080 npm run start
 ```
@@ -83,36 +88,33 @@ PORT=8080 npm run start
 FusionTik/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API Routes
-│   │   └── tiktok/
-│   │       └── route.ts          # TikTok download API endpoint
-│   ├── fonts/                    # Custom fonts
-│   ├── favicon.ico               # Favicon
+│   │   ├── tiktok/
+│   │   │   └── route.ts          # TikTok download API endpoint
+│   │   └── global-stats/
+│   │       └── route.ts          # Global download counter API
 │   ├── globals.css               # Global styles
 │   ├── layout.tsx                # Root layout
 │   └── page.tsx                  # Home page (main downloader)
 │
 ├── components/                   # React components
 │   ├── ui/                       # shadcn/ui components
-│   │   ├── alert.tsx
-│   │   ├── badge.tsx
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── input.tsx
-│   │   ├── toast.tsx
-│   │   ├── toaster.tsx
-│   │   ├── tooltip.tsx
-│   │   └── use-toast.ts
 │   ├── navbar.tsx                # Navigation bar component
 │   ├── result-buttons.tsx        # Download result buttons
 │   ├── result-card.tsx           # Download history card
+│   ├── stats-card.tsx            # Download statistics card
+│   ├── video-preview.tsx         # Video preview with caption
 │   └── video-preview-modal.tsx   # Video preview modal
 │
 ├── hooks/                        # Custom React hooks
-│   └── use-download-history.ts   # Download history management hook
+│   ├── use-download-history.ts   # Download history management
+│   ├── use-download-stats.ts     # Individual user statistics
+│   └── use-global-stats.ts       # Global download counter
 │
 ├── lib/                          # Utility libraries
 │   └── utils.ts                  # Helper functions
+│
+├── data/                         # Data storage
+│   └── global-stats.json         # Global counter persistence
 │
 ├── public/                       # Static assets
 │   └── ...
@@ -120,7 +122,7 @@ FusionTik/
 ├── .eslintrc.json               # ESLint configuration
 ├── .gitignore                   # Git ignore file
 ├── components.json              # shadcn/ui configuration
-├── next.config.js               # Next.js configuration
+├── next.config.mjs              # Next.js configuration
 ├── package.json                 # Project dependencies
 ├── postcss.config.mjs           # PostCSS configuration
 ├── tailwind.config.ts           # Tailwind CSS configuration
@@ -131,24 +133,36 @@ FusionTik/
 ## 💡 How It Works
 
 ### 🎬 Video Downloads
+
 - Paste any TikTok video URL
 - Get clean MP4 files without watermarks
 - Choose between standard and HD quality
+- Multiple download options (MP4 [1], MP4 HD, MP3)
 
 ### 🖼️ Image Collections
+
 - Download entire photo carousels
 - Save individual images or all at once
 - Maintains original image quality
 
 ### 🎵 Audio Extraction
+
 - Extract just the audio from videos
 - Get MP3 files ready to use
 - Perfect for music lovers
 
 ### 📚 Smart History
+
 - Your downloads are saved locally
 - Access previous downloads anytime
 - Manage your collection easily
+- Personal download statistics
+
+### 🌍 Global Counter
+
+- Track total downloads worldwide
+- Persistent storage across server restarts
+- Real-time counter updates
 
 ## 🛡️ Your Privacy Matters
 
@@ -162,11 +176,11 @@ FusionTik/
 We'd love your contributions! Here's how:
 
 1. **🍴 Fork this repo**
-2. **🌿 Create a branch:**
+2. **🌿 Create a branch:**  
    ```bash
    git checkout -b your-awesome-feature
    ```
-3. **💾 Commit your changes:**
+3. **💾 Commit your changes:**  
    ```bash
    git commit -m 'Add your awesome feature'
    ```
@@ -175,6 +189,7 @@ We'd love your contributions! Here's how:
 ## 🐛 Found a Bug?
 
 Help us fix it! Please include:
+
 - What went wrong
 - How to make it happen again
 - What you expected vs what happened
@@ -183,11 +198,12 @@ Help us fix it! Please include:
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## ⚖️ Important Notice
 
 **Please use responsibly:**
+
 - This is for personal use only
 - Respect content creators' rights
 - Follow TikTok's Terms of Service
@@ -199,13 +215,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Tailwind CSS](https://tailwindcss.com/) - Beautiful styling made easy
 - [shadcn/ui](https://ui.shadcn.com/) - Gorgeous UI components
 - [Framer Motion](https://www.framer.com/motion/) - Smooth animations
-- [TikMate API](https://tikmate.netlify.app/) - TikTok content extraction
+- [TikSave.io](https://tiksave.io/) - TikTok content extraction
 
 ## 📞 Get in Touch
 
-- **🌐 Website:** [Fusionify.ID](https://fusionify.id)
-- **📁 Repository:** [FusionTik](https://github.com/fusionify-id/FusionTik)
+- **🌐 Website:** [Fusionify.ID](https://linktr.ee/fusionifytempest)
+- **📁 Repository:** [FusionTik](https://github.com/jundy779/FusionTik)
 
 ---
 
-**💙 Made with love by [Fusionify.ID](https://fusionify.id)**
+**💙 Made with love by [FUSIONIFY DIGITAL.ID](https://linktr.ee/fusionifytempest)**
