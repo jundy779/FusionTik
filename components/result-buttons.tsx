@@ -109,7 +109,7 @@ export function ResultButtons({
 
         <Button
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+          className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
           onClick={handleDownloadImages}
         >
           <Download className="h-5 w-5" />
@@ -120,7 +120,7 @@ export function ResultButtons({
           {/* Standard MP4 download */}
           <Button
             size="lg"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
             onClick={() => handleDownload(videoUrl, "video")}
           >
             <Download className="h-5 w-5" />
@@ -129,7 +129,7 @@ export function ResultButtons({
           {/* HD MP4 download – fall back to the standard URL if HD is unavailable */}
           <Button
             size="lg"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
             onClick={() => handleDownload(videoHdUrl || videoUrl, "video (HD)")}
           >
             <Download className="h-5 w-5" />
@@ -142,7 +142,7 @@ export function ResultButtons({
       {audioUrl && (
         <Button
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+          className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
           onClick={() => handleDownload(audioUrl, "audio")}
         >
           <Download className="h-5 w-5" />
@@ -168,7 +168,6 @@ export function ResultButtons({
           variant="outline"
           className="bg-gray-800 hover:bg-gray-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 w-12"
           onClick={() => {
-            // Determine which URL to copy based on the content type
             const firstUrl =
               type === "image"
                 ? imageUrls && imageUrls.length > 0

@@ -3,9 +3,9 @@ import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata = {
-  title: "SlowTik - Download TikTok Videos, Images & Audio",
+  title: "FusionTik - Download TikTok Videos, Images & Audio",
   description:
-    "SlowTik is a free online tool to download TikTok videos, images and audio without watermark in high quality."
+    "FusionTik is a free online tool to download TikTok videos, images and audio without watermark in high quality."
 }
 
 export default function RootLayout({

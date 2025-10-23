@@ -31,10 +31,61 @@ async function tiktok(url: string) {
   }
   
   let title = ""
+  let creator = ""
   {
-    const match = /class\s*=\s*["']tik-left["'][\s\S]*?<div[^>]*class\s*=\s*["']content["'][^>]*>(.*?)<\/div>/i.exec(html)
-    if (match) {
-      title = match[1].replace(/<[^>]+>/g, "").trim()
+    const patterns = [
+      /<div[^>]*class\s*=\s*["']content["'][^>]*>([\s\S]*?)<\/div>/i,
+      /class\s*=\s*["']content["'][^>]*>([\s\S]*?)<\/div>/i,
+      /<div[^>]*class\s*=\s*["']desc["'][^>]*>([\s\S]*?)<\/div>/i,
+      /<div[^>]*class\s*=\s*["']description["'][^>]*>([\s\S]*?)<\/div>/i,
+      /<p[^>]*class\s*=\s*["']desc["'][^>]*>([\s\S]*?)<\/p>/i,
+      /<span[^>]*class\s*=\s*["']desc["'][^>]*>([\s\S]*?)<\/span>/i,
+      /class\s*=\s*["']tik-left["'][\s\S]*?<div[^>]*class\s*=\s*["']content["'][^>]*>([\s\S]*?)<\/div>/i,
+      /<div[^>]*class\s*=\s*["']content["'][^>]*>([\s\S]*?)(?:<\/div>|$)/i,
+      /<div[^>]*class\s*=\s*["']text["'][^>]*>([\s\S]*?)<\/div>/i,
+      /<div[^>]*class\s*=\s*["']caption["'][^>]*>([\s\S]*?)<\/div>/i
+    ]
+    
+    for (let i = 0; i < patterns.length; i++) {
+      const pattern = patterns[i]
+      const match = pattern.exec(html)
+      if (match && match[1]) {
+        const rawContent = match[1]
+        title = rawContent.replace(/<[^>]+>/g, "").trim()
+        if (title && title.length > 0) {
+          break
+        }
+      }
+    }
+    
+    const textContentPatterns = [
+      /<div[^>]*>([^<]*#[^<]*?)<\/div>/i,
+      /<p[^>]*>([^<]*#[^<]*?)<\/p>/i,
+      /<span[^>]*>([^<]*#[^<]*?)<\/span>/i
+    ]
+    
+    if (!title || title.length === 0) {
+      for (let i = 0; i < textContentPatterns.length; i++) {
+        const pattern = textContentPatterns[i]
+        const match = pattern.exec(html)
+        if (match && match[1]) {
+          const foundText = match[1].trim()
+          if (foundText && foundText.length > 5) {
+            title = foundText
+            break
+          }
+        }
+      }
+    }
+    
+    const creatorMatch = /class\s*=\s*["']tik-left["'][\s\S]*?<div[^>]*class\s*=\s*["']user["'][^>]*>.*?<a[^>]*>@([^<]+)<\/a>/i.exec(html)
+    if (creatorMatch) {
+      creator = creatorMatch[1]
+    } else {
+      const altCreatorMatch = /@([a-zA-Z0-9_.]+)/i.exec(html)
+      if (altCreatorMatch) {
+        creator = altCreatorMatch[1]
+      }
     }
   }
 
@@ -46,29 +97,93 @@ async function tiktok(url: string) {
     }
   }
 
-  let video = ""
+  let videos: string[] = []
   let audio = ""
   {
-    const match = /class\s*=\s*["']dl-action["'][\s\S]*?<p[^>]*>[^]*?<a[^>]*href="([^"]+)"[^>]*>[^]*?<\/a>[^]*?<\/p>[\s\S]*?<p[^>]*>[^]*?<a[^>]*href="([^"]+)"/i.exec(html)
-    if (match) {
-      video = match[1]
-      audio = match[2]
-    } else {
-
-      const sectionMatch = /class\s*=\s*["']dl-action["'][\s\S]*?<\/div>/i.exec(html)
-      if (sectionMatch) {
-        const section = sectionMatch[0]
-        const hrefs = [] as string[]
-        const hrefRegex = /href="([^"]+)"/g
-        let m: RegExpExecArray | null
-        while ((m = hrefRegex.exec(section))) {
-          hrefs.push(m[1])
-        }
-        if (hrefs.length > 0) {
-          video = hrefs[0]
-          if (hrefs.length > 1) audio = hrefs[hrefs.length - 1]
-        }
+    const patterns = [
+      /class\s*=\s*["']dl-action["'][\s\S]*?<\/div>/i,
+      /class\s*=\s*["']download["'][\s\S]*?<\/div>/i,
+      /class\s*=\s*["']download-box["'][\s\S]*?<\/div>/i,
+      /<div[^>]*class\s*=\s*["'][^"']*download[^"']*["'][^>]*>[\s\S]*?<\/div>/i
+    ]
+    
+    let section = ""
+    for (const pattern of patterns) {
+      const match = pattern.exec(html)
+      if (match && match[0]) {
+        section = match[0]
+        break
       }
+    }
+    
+    if (section) {
+      const hrefs = [] as string[]
+      const hrefRegex = /href="([^"]+)"/g
+      let m: RegExpExecArray | null
+      while ((m = hrefRegex.exec(section))) {
+        hrefs.push(m[1])
+      }
+      
+      const videoUrls = hrefs.filter(url => 
+        url.includes('.mp4') || 
+        url.includes('video') || 
+        (!url.includes('.mp3') && !url.includes('audio'))
+      )
+      const audioUrls = hrefs.filter(url => 
+        url.includes('.mp3') || 
+        url.includes('audio')
+      )
+      
+      const snapcdnUrls = videoUrls.filter(url => url.includes('snapcdn.app'))
+      const otherVideoUrls = videoUrls.filter(url => !url.includes('snapcdn.app'))
+      
+      videos = [...snapcdnUrls, ...otherVideoUrls].slice(0, 2)
+      
+      if (audioUrls.length > 0) {
+        audio = audioUrls[0]
+      }
+      
+      console.log("=== TIKSAVE.IO EXTRACTION DEBUG ===")
+      console.log("All hrefs found:", hrefs)
+      console.log("Video URLs:", videoUrls)
+      console.log("Audio URLs:", audioUrls)
+      console.log("snapcdn URLs:", snapcdnUrls)
+      console.log("Other video URLs:", otherVideoUrls)
+      console.log("Final videos array:", videos)
+      console.log("Final audio:", audio)
+      console.log("===================================")
+    } else {
+      console.log("=== FALLBACK: SEARCHING ALL HREFS ===")
+      const allHrefs = [] as string[]
+      const allHrefRegex = /href="([^"]+)"/g
+      let m: RegExpExecArray | null
+      while ((m = allHrefRegex.exec(html))) {
+        allHrefs.push(m[1])
+      }
+      
+      const fallbackVideoUrls = allHrefs.filter(url => 
+        url.includes('.mp4') || 
+        url.includes('video') || 
+        (!url.includes('.mp3') && !url.includes('audio') && !url.includes('http'))
+      )
+      const fallbackAudioUrls = allHrefs.filter(url => 
+        url.includes('.mp3') || 
+        url.includes('audio')
+      )
+      
+      if (fallbackVideoUrls.length > 0) {
+        videos = fallbackVideoUrls.slice(0, 2)
+      }
+      if (fallbackAudioUrls.length > 0) {
+        audio = fallbackAudioUrls[0]
+      }
+      
+      console.log("All hrefs in HTML:", allHrefs)
+      console.log("Fallback video URLs:", fallbackVideoUrls)
+      console.log("Fallback audio URLs:", fallbackAudioUrls)
+      console.log("Final fallback videos:", videos)
+      console.log("Final fallback audio:", audio)
+      console.log("===================================")
     }
   }
 
@@ -84,7 +199,7 @@ async function tiktok(url: string) {
       }
     }
   }
-  return { title, thumbnail, video, audio, slide }
+  return { title, creator, thumbnail, videos, audio, slide }
 }
 
 export async function POST(req: Request) {
@@ -105,20 +220,37 @@ export async function POST(req: Request) {
 
     const images: string[] = Array.isArray(result.slide) ? result.slide : []
     const isPhoto = images.length > 0
-    const videoUrl = result.video || undefined
+    const videos = result.videos || []
     const audioUrl = result.audio || undefined
     const description = result.title || ""
+    const creator = result.creator || ""
 
     const response: Record<string, any> = {
       type: isPhoto ? "image" : "video",
       images,
       description,
+      creator,
     }
+    
     if (!isPhoto) {
-      if (!videoUrl) {
-        return NextResponse.json({ error: "No video URL found in the TikSave response" }, { status: 500 })
+      if (videos.length === 0) {
+        return NextResponse.json({ error: "No video URLs found in the TikSave response" }, { status: 500 })
       }
-      response.video = videoUrl
+      
+      response.videos = videos
+      response.video = videos[0]
+      
+      const hdVideo = videos.find((url: string) => 
+        url.includes('snapcdn.app') || 
+        url.includes('hd') || 
+        url.includes('HD')
+      )
+      
+      if (hdVideo) {
+        response.videoHd = hdVideo
+      } else if (videos.length > 1) {
+        response.videoHd = videos[1]
+      }
     }
     if (audioUrl) {
       response.music = audioUrl

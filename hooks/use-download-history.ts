@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useDownloadStats } from "./use-download-stats"
 
 export interface DownloadHistoryItem {
   /** Unique identifier for each entry. */
@@ -29,44 +30,44 @@ export interface DownloadHistoryItem {
 
 export function useDownloadHistory() {
   const [history, setHistory] = useState<DownloadHistoryItem[]>([])
+  const { updateStats } = useDownloadStats()
 
-  // Load history from localStorage on component mount
   useEffect(() => {
     const savedHistory = localStorage.getItem("tiktok-download-history")
     if (savedHistory) {
       try {
-        setHistory(JSON.parse(savedHistory))
+        const parsedHistory = JSON.parse(savedHistory)
+        setHistory(parsedHistory)
+        updateStats(parsedHistory)
       } catch (error) {
         console.error("Failed to parse download history:", error)
-        // If parsing fails, reset the history
         localStorage.removeItem("tiktok-download-history")
       }
     }
   }, [])
 
-  // Save to history
   const addToHistory = (item: DownloadHistoryItem) => {
-    // Check if item with same URL already exists
     const exists = history.some((historyItem) => historyItem.url === item.url)
 
     if (!exists) {
       const newHistory = [item, ...history]
       setHistory(newHistory)
       localStorage.setItem("tiktok-download-history", JSON.stringify(newHistory))
+      updateStats(newHistory)
     }
   }
 
-  // Remove from history
   const removeFromHistory = (id: number) => {
     const newHistory = history.filter((item) => item.id !== id)
     setHistory(newHistory)
     localStorage.setItem("tiktok-download-history", JSON.stringify(newHistory))
+    updateStats(newHistory)
   }
 
-  // Clear all history
   const clearHistory = () => {
     setHistory([])
     localStorage.removeItem("tiktok-download-history")
+    updateStats([])
   }
 
   return {

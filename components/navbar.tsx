@@ -13,6 +13,7 @@ export function Navbar() {
   const navItems = [
     { name: "Download", href: "#download" },
     { name: "History", href: "#history" },
+    { name: "Stats", href: "#stats" },
     { name: "About", href: "#about" },
   ]
 
@@ -24,8 +25,8 @@ export function Navbar() {
             <Download size={24} />
           </div>
           <Link href="/" className="flex items-center gap-1">
-            <span className="font-bold text-xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-              SlowTik
+            <span className="font-bold text-xl bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+              FusionTik
             </span>
           </Link>
         </div>
@@ -59,7 +60,7 @@ export function Navbar() {
                 <div className="flex items-center justify-between">
                   <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
                     <Download className="h-5 w-5 text-primary" />
-                    <span className="font-bold text-lg">SlowTik</span>
+                    <span className="font-bold text-lg">FusionTik</span>
                   </Link>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">

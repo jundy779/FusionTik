@@ -83,7 +83,7 @@ export function ResultCard({
                   <TooltipTrigger asChild>
                     <Button
                       onClick={onDownloadVideo}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Video
@@ -101,7 +101,7 @@ export function ResultCard({
                 <TooltipTrigger asChild>
                   <Button
                     onClick={onDownloadVideo}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Image

@@ -12,14 +12,15 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Navbar } from "@/components/navbar"
 import { useToast } from "@/components/ui/use-toast"
-import { ResultButtons } from "@/components/result-buttons"
 import { ResultCard } from "@/components/result-card"
+import { StatsCard } from "@/components/stats-card"
+import { VideoPreview } from "@/components/video-preview"
 import { useDownloadHistory, type DownloadHistoryItem } from "@/hooks/use-download-history"
+import { useDownloadStats } from "@/hooks/use-download-stats"
+import { useGlobalStats } from "@/hooks/use-global-stats"
 
 async function fetchTikTokData(url: string) {
   try {
-    console.log("Fetching TikTok data for URL:", url)
-
     const res = await fetch("/api/tiktok", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -27,7 +28,6 @@ async function fetchTikTokData(url: string) {
     })
     const data = await res.json()
 
-    console.log("API response:", data)
     if (!res.ok) {
       throw new Error(data.error || `Server returned ${res.status}: ${res.statusText}`)
     }
@@ -60,6 +60,7 @@ interface TikTokResult {
   date: string
   videoUrl?: string
   videoHdUrl?: string
+  videos?: string[]
   audioUrl?: string
   imageUrls?: string[]
   description?: string
@@ -74,6 +75,8 @@ export default function TikTokDownloader() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
   const { history, addToHistory, removeFromHistory, clearHistory } = useDownloadHistory()
+  const { resetStats } = useDownloadStats()
+  const { globalStats, incrementGlobalCounter } = useGlobalStats()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,17 +94,19 @@ export default function TikTokDownloader() {
         type: data.type || "video",
         date: new Date().toLocaleDateString(),
         videoUrl: data.type === "video" ? data.video : undefined,
-        videoHdUrl: data.type === "video" ? data.video : undefined,
+        videoHdUrl: data.type === "video" ? data.videoHd : undefined,
+        videos: data.type === "video" ? data.videos : undefined,
         audioUrl: data.music || undefined,
         imageUrls: data.type === "image" ? (data.images as string[]) : undefined,
         description: data.description,
         creator: data.creator,
         duration: data.duration,
       }
-      console.log("Created result:", newResult)
       setCurrentResult(newResult)
 
       addToHistory(newResult as DownloadHistoryItem)
+      
+      await incrementGlobalCounter()
 
       toast({
         title: "Download ready!",
@@ -173,7 +178,7 @@ export default function TikTokDownloader() {
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
+      transition: { type: "spring" as const, stiffness: 100 },
     },
   }
 
@@ -193,10 +198,18 @@ export default function TikTokDownloader() {
             variants={containerVariants}
           >
             <motion.div variants={itemVariants} className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">Download TikTok Videos & Images</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
+              <h2 className="text-4xl font-bold mb-4">FusionTik - Download TikTok Videos & Images</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
                 Easily download your favorite TikTok videos, images, and audio with our fast and free online tool.
               </p>
+          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-3 rounded-lg inline-block">
+            <p className="text-lg font-semibold">
+              🌍 {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
+            </p>
+            <p className="text-sm opacity-90 mt-1">
+              Global counter (persistent storage)
+            </p>
+          </div>
             </motion.div>
 
             <motion.div variants={itemVariants}>
@@ -227,7 +240,7 @@ export default function TikTokDownloader() {
                     <Button
                       type="submit"
                       disabled={isLoading || !url}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
                     >
                       {isLoading ? (
                         <>
@@ -259,7 +272,7 @@ export default function TikTokDownloader() {
         {/* Results Section - Simple Button Style */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500 mb-4" />
             <h3 className="text-xl font-medium">Processing your download...</h3>
             <p className="text-muted-foreground mt-2">This may take a few moments</p>
           </div>
@@ -267,24 +280,30 @@ export default function TikTokDownloader() {
 
         {currentResult && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8">
-            <div className="bg-gradient-to-br from-purple-700 to-pink-700 rounded-lg p-8 max-w-md mx-auto shadow-lg">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Download Ready!</h2>
-                {currentResult.creator && (
-                  <p className="text-white/80">
-                    Video by <span className="font-medium">@{currentResult.creator}</span>
-                  </p>
-                )}
-              </div>
-
-              <ResultButtons
-                videoUrl={currentResult.videoUrl}
-                videoHdUrl={currentResult.videoHdUrl}
-                audioUrl={currentResult.audioUrl}
-                imageUrls={currentResult.imageUrls}
-                type={currentResult.type}
-                onDownloadAnother={handleDownloadAnother}
-              />
+            <VideoPreview
+              result={currentResult}
+              onDownloadVideo={() => {
+                if (currentResult.videoUrl) {
+                  window.open(currentResult.videoUrl, '_blank')
+                } else if (currentResult.imageUrls && currentResult.imageUrls.length > 0) {
+                  currentResult.imageUrls.forEach(url => window.open(url, '_blank'))
+                }
+              }}
+              onDownloadAudio={() => {
+                if (currentResult.audioUrl) {
+                  window.open(currentResult.audioUrl, '_blank')
+                }
+              }}
+            />
+            
+            <div className="text-center mt-6">
+              <Button
+                variant="outline"
+                onClick={handleDownloadAnother}
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              >
+                Download Video Lain
+              </Button>
             </div>
           </motion.section>
         )}
@@ -301,7 +320,7 @@ export default function TikTokDownloader() {
           >
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">About Our Service</h2>
-              <p className="text-muted-foreground">Learn more about SlowTik and how it works</p>
+              <p className="text-muted-foreground">Learn more about FusionTik and how it works</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
@@ -309,13 +328,13 @@ export default function TikTokDownloader() {
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Info className="h-5 w-5 text-purple-500" />
+                      <Info className="h-5 w-5 text-blue-500" />
                       How It Works
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4">
-                      SlowTik allows you to save TikTok videos, images, and audio files to your
+                      FusionTik allows you to save TikTok videos, images, and audio files to your
                       device without watermarks. Here's how it works:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
@@ -333,30 +352,30 @@ export default function TikTokDownloader() {
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Info className="h-5 w-5 text-purple-500" />
+                      <Info className="h-5 w-5 text-blue-500" />
                       Features
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-3">
                       <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-purple-600">Free</Badge>
+                        <Badge className="mt-1 bg-blue-600">Free</Badge>
                         <span>Our service is completely free to use with no hidden fees</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-purple-600">No Watermarks</Badge>
+                        <Badge className="mt-1 bg-blue-600">No Watermarks</Badge>
                         <span>Download TikTok videos without the TikTok watermark</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-purple-600">High Quality</Badge>
+                        <Badge className="mt-1 bg-blue-600">High Quality</Badge>
                         <span>Download videos and images in the highest available quality</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-purple-600">Audio Extraction</Badge>
+                        <Badge className="mt-1 bg-blue-600">Audio Extraction</Badge>
                         <span>Extract and download only the audio from TikTok videos</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-purple-600">Download History</Badge>
+                        <Badge className="mt-1 bg-blue-600">Download History</Badge>
                         <span>Keep track of your downloaded content with our history feature</span>
                       </li>
                     </ul>
@@ -437,6 +456,33 @@ export default function TikTokDownloader() {
           </motion.section>
         )}
 
+        {/* Download Stats Section */}
+        {!currentResult && (
+          <motion.section
+            id="stats"
+            className="mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-2">Your Personal Download Statistics</h2>
+              <p className="text-muted-foreground">
+                Track your personal download activity. These stats are stored locally and can be reset without affecting the global counter.
+              </p>
+            </div>
+            <StatsCard onResetStats={() => {
+              resetStats()
+              clearHistory()
+              toast({
+                title: "Local Stats Reset",
+                description: "Your personal download statistics have been cleared. Global counter remains unchanged.",
+              })
+            }} />
+          </motion.section>
+        )}
+
         {/* FAQ Section */}
         {!currentResult && (
           <motion.section
@@ -457,7 +503,7 @@ export default function TikTokDownloader() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground">
-                      Yes, SlowTik is completely free to use. There are no hidden fees or subscriptions
+                      Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions
                       required.
                     </p>
                 </CardContent>
@@ -514,9 +560,9 @@ export default function TikTokDownloader() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
               <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-purple-500" />
-                <span className="font-bold text-xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  SlowTik
+                <Download className="h-5 w-5 text-blue-500" />
+                <span className="font-bold text-xl bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+                  FusionTik
                 </span>
               </div>
               <p className="text-muted-foreground text-sm mt-2">Download TikTok videos, images, and audio easily</p>
@@ -527,17 +573,22 @@ export default function TikTokDownloader() {
                 <h3 className="font-medium mb-2">Links</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
-                    <a href="#download" className="hover:text-purple-400 transition-colors">
+                    <a href="#download" className="hover:text-blue-400 transition-colors">
                       Download
                     </a>
                   </li>
                   <li>
-                    <a href="#history" className="hover:text-purple-400 transition-colors">
+                    <a href="#history" className="hover:text-blue-400 transition-colors">
                       History
                     </a>
                   </li>
                   <li>
-                    <a href="#about" className="hover:text-purple-400 transition-colors">
+                    <a href="#stats" className="hover:text-blue-400 transition-colors">
+                      Stats
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#about" className="hover:text-blue-400 transition-colors">
                       About
                     </a>
                   </li>
@@ -548,12 +599,12 @@ export default function TikTokDownloader() {
                 <h3 className="font-medium mb-2">Legal</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
-                    <a href="/terms" className="hover:text-purple-400 transition-colors">
+                    <a href="/terms" className="hover:text-blue-400 transition-colors">
                       Terms of Service
                     </a>
                   </li>
                   <li>
-                    <a href="/privacy" className="hover:text-purple-400 transition-colors">
+                    <a href="/privacy" className="hover:text-blue-400 transition-colors">
                       Privacy Policy
                     </a>
                   </li>
@@ -564,17 +615,17 @@ export default function TikTokDownloader() {
                 <h3 className="font-medium mb-2">Support</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li>
-                    <a href="/faq" className="hover:text-purple-400 transition-colors">
+                    <a href="/faq" className="hover:text-blue-400 transition-colors">
                       FAQ
                     </a>
                   </li>
                   <li>
-                    <a href="/help-center" className="hover:text-purple-400 transition-colors">
+                    <a href="/help-center" className="hover:text-blue-400 transition-colors">
                       Help Center
                     </a>
                   </li>
                   <li>
-                    <a href="/feedback" className="hover:text-purple-400 transition-colors">
+                    <a href="/feedback" className="hover:text-blue-400 transition-colors">
                       Feedback
                     </a>
                   </li>
@@ -584,7 +635,7 @@ export default function TikTokDownloader() {
           </div>
 
           <div className="border-t mt-8 pt-8 text-center text-muted-foreground text-sm">
-            <p>© {new Date().getFullYear()} SlowTik. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Fusionify.ID. All rights reserved.</p>
             <p className="mt-1">This service is not affiliated with TikTok or ByteDance Ltd.</p>
           </div>
         </div>
