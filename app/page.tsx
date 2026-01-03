@@ -105,7 +105,7 @@ export default function TikTokDownloader() {
       setCurrentResult(newResult)
 
       addToHistory(newResult as DownloadHistoryItem)
-      
+
       await incrementGlobalCounter()
 
       toast({
@@ -197,71 +197,89 @@ export default function TikTokDownloader() {
             animate="visible"
             variants={containerVariants}
           >
-            <motion.div variants={itemVariants} className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">FusionTik - Download TikTok Videos & Images</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
+            <motion.div variants={itemVariants} className="text-center mb-12">
+              <motion.h2
+                className="text-5xl md:text-6xl font-extrabold mb-6 hero-gradient"
+                animate={{ backgroundPosition: ["0% center", "200% center"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              >
+                FusionTik
+              </motion.h2>
+              <h3 className="text-2xl md:text-3xl font-semibold text-foreground/90 mb-4">
+                Download TikTok Videos & Images
+              </h3>
+              <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
                 Easily download your favorite TikTok videos, images, and audio with our fast and free online tool.
               </p>
-          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-6 py-3 rounded-lg inline-block">
-            <p className="text-lg font-semibold">
-              🌍 {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
-            </p>
-            <p className="text-sm opacity-90 mt-1">
-              Global counter (persistent storage)
-            </p>
-          </div>
+              <motion.div
+                className="inline-block"
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
+                <div className="gradient-bg text-white px-8 py-4 rounded-2xl glow shimmer">
+                  <p className="text-xl font-bold">
+                    🌍 {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
+                  </p>
+                  <p className="text-sm opacity-90 mt-1">
+                    Trusted by users globally
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Enter TikTok URL</CardTitle>
-                  <CardDescription>Paste the link to the TikTok video or image you want to download</CardDescription>
+              <Card className="glass-card animated-border overflow-hidden">
+                <CardHeader className="text-center pb-2">
+                  <CardTitle className="text-2xl text-gradient">Enter TikTok URL</CardTitle>
+                  <CardDescription className="text-base">Paste the link to the TikTok video or image you want to download</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="flex gap-2 flex-col sm:flex-row">
-                    <div className="flex flex-1 gap-2">
+                <CardContent className="pt-6">
+                  <form onSubmit={handleSubmit} className="flex gap-3 flex-col sm:flex-row">
+                    <div className="flex flex-1 gap-3">
                       <Input
                         type="text"
-                        placeholder="https://www.tiktok.com/@username/video/1234567890123456789"
+                        placeholder="https://www.tiktok.com/@username/video/..."
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
-                        className="focus-visible:ring-primary flex-1"
+                        className="flex-1 h-12 text-base bg-background/50 border-white/20 focus:border-blue-500 input-glow transition-all"
                       />
-                      {/* Paste button: reads the clipboard and populates the URL field */}
                       <Button
                         type="button"
                         variant="outline"
-                     onClick={handlePasteClick}
+                        onClick={handlePasteClick}
+                        className="h-12 px-6 border-white/20 hover:bg-white/10 transition-all"
                       >
-                        Paste
+                        📋 Paste
                       </Button>
                     </div>
                     <Button
                       type="submit"
                       disabled={isLoading || !url}
-                      className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
+                      className="h-12 px-8 text-base font-semibold gradient-bg glow-hover transition-all duration-300"
                     >
                       {isLoading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                           Processing
                         </>
                       ) : (
-                        "Download"
+                        <>
+                          <Download className="mr-2 h-5 w-5" />
+                          Download
+                        </>
                       )}
                     </Button>
                   </form>
 
                   {error && (
-                    <Alert variant="destructive" className="mt-4">
+                    <Alert variant="destructive" className="mt-6">
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>Error</AlertTitle>
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
                 </CardContent>
-                <CardFooter className="text-xs text-muted-foreground border-t pt-4">
+                <CardFooter className="text-sm text-muted-foreground border-t border-white/10 pt-4 justify-center">
                   By using our service, you agree to our Terms of Service and Privacy Policy
                 </CardFooter>
               </Card>
@@ -269,13 +287,20 @@ export default function TikTokDownloader() {
           </motion.section>
         )}
 
-        {/* Results Section - Simple Button Style */}
+        {/* Loading Section */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-500 mb-4" />
-            <h3 className="text-xl font-medium">Processing your download...</h3>
-            <p className="text-muted-foreground mt-2">This may take a few moments</p>
-          </div>
+          <motion.div
+            className="flex flex-col items-center justify-center py-20"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <div className="relative">
+              <div className="absolute inset-0 gradient-bg rounded-full blur-xl opacity-50 animate-pulse"></div>
+              <Loader2 className="relative h-16 w-16 animate-spin text-blue-500" />
+            </div>
+            <h3 className="text-2xl font-semibold mt-8 text-gradient">Processing your download...</h3>
+            <p className="text-muted-foreground mt-3 text-lg">This may take a few moments</p>
+          </motion.div>
         )}
 
         {currentResult && (
@@ -295,7 +320,7 @@ export default function TikTokDownloader() {
                 }
               }}
             />
-            
+
             <div className="text-center mt-6">
               <Button
                 variant="outline"
@@ -502,10 +527,10 @@ export default function TikTokDownloader() {
                   <CardTitle className="text-lg">Is this service free?</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">
-                      Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions
-                      required.
-                    </p>
+                  <p className="text-muted-foreground">
+                    Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions
+                    required.
+                  </p>
                 </CardContent>
               </Card>
 
