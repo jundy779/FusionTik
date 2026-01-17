@@ -107,10 +107,12 @@ export function VideoPreviewModal({ isOpen, onClose, video }: VideoPreviewModalP
               <div className="text-muted-foreground">Type</div>
               <div>{video.type}</div>
             </div>
-            <div>
-              <div className="text-muted-foreground">Duration</div>
-              <div>{video.duration}</div>
-            </div>
+            {video.type === "video" && (
+              <div>
+                <div className="text-muted-foreground">Duration</div>
+                <div>{video.duration}</div>
+              </div>
+            )}
             <div>
               <div className="text-muted-foreground">Size</div>
               <div>{video.size}</div>

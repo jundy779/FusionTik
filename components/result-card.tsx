@@ -36,6 +36,17 @@ export function ResultCard({
 }: ResultCardProps) {
   const isVideo = result.type === "video"
 
+  const formatResultDuration = (value?: string) => {
+    if (!value) return ""
+    const totalSeconds = Number(value)
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return value
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = Math.floor(totalSeconds % 60)
+    const mm = minutes.toString().padStart(2, "0")
+    const ss = seconds.toString().padStart(2, "0")
+    return `${mm}:${ss}`
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -69,7 +80,11 @@ export function ResultCard({
               <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{result.description}</p>
             )}
 
-            {result.duration && <div className="text-xs text-muted-foreground mt-1">Duration: {result.duration}</div>}
+            {isVideo && result.duration && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Duration: {formatResultDuration(result.duration)}
+              </div>
+            )}
 
             <div className="text-xs text-muted-foreground truncate mt-1">{result.url}</div>
           </div>

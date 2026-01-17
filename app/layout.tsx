@@ -5,7 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 const siteConfig = {
   name: "FusionTik",
-  description: "Download TikTok videos, images, and audio without watermark. Free, fast, and high quality TikTok downloader.",
+  description:
+    "Download TikTok videos, images, and audio tanpa watermark. Free, cepat, dan berkualitas tinggi. TikTok downloader online untuk MP4, MP3, dan Photo Mode.",
   url: "https://fusiontik.vercel.app",
   ogImage: "https://fusiontik.vercel.app/og-image.png",
   keywords: [
@@ -16,6 +17,11 @@ const siteConfig = {
     "download TikTok tanpa watermark",
     "TikTok audio download",
     "TikTok image download",
+    "TikTok downloader Indonesia",
+    "download video TikTok tanpa watermark",
+    "download TikTok MP4",
+    "download TikTok MP3",
+    "TikTok Photo Mode download",
     "free TikTok downloader",
     "TikTok MP4 download",
     "TikTok MP3 download",
@@ -27,7 +33,7 @@ const siteConfig = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} - Download TikTok Videos, Images & Audio Without Watermark`,
+    default: `${siteConfig.name} - TikTok Downloader Tanpa Watermark (Video, Foto, MP3)`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -45,7 +51,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     alternateLocale: "id_ID",
     url: siteConfig.url,
-    title: `${siteConfig.name} - Free TikTok Video Downloader`,
+    title: `${siteConfig.name} - TikTok Downloader Tanpa Watermark`,
     description: siteConfig.description,
     siteName: siteConfig.name,
     images: [
@@ -59,7 +65,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} - Download TikTok Without Watermark`,
+    title: `${siteConfig.name} - TikTok Downloader Tanpa Watermark`,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
     creator: "@fusiontik",
@@ -78,10 +84,14 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-verification-code", // Replace with actual code
+    google: "fUglujUhUECvyJy8o6Yo5hdrTmYUoP2zB_UtAKP6ZdM",
   },
   alternates: {
     canonical: siteConfig.url,
+    languages: {
+      "en-US": siteConfig.url,
+      "id-ID": siteConfig.url,
+    },
   },
   category: "technology",
 }

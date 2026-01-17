@@ -78,6 +78,45 @@ export default function TikTokDownloader() {
   const { resetStats } = useDownloadStats()
   const { globalStats, incrementGlobalCounter } = useGlobalStats()
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Is this service free?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions required.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is it legal to download TikTok videos?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Downloading videos for personal use is generally acceptable. However, you should not redistribute or use the content commercially without permission from the creator.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What formats can I download?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG images depending on the original content type.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Do you store the downloaded videos?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "No, we don't store any downloaded videos or user data on our servers. Your download history is saved locally on your device only.",
+        },
+      },
+    ],
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!url) return
@@ -206,10 +245,11 @@ export default function TikTokDownloader() {
                 FusionTik
               </motion.h2>
               <h3 className="text-2xl md:text-3xl font-semibold text-foreground/90 mb-4">
-                Download TikTok Videos & Images
+                TikTok Downloader Tanpa Watermark (Video, Foto, MP3)
               </h3>
               <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
-                Easily download your favorite TikTok videos, images, and audio with our fast and free online tool.
+                Download video TikTok tanpa watermark, simpan Photo Mode jadi gambar, dan ekstrak audio MP3 secara
+                gratis dengan kualitas tinggi langsung dari browser kamu.
               </p>
               <motion.div
                 className="inline-block"
@@ -344,8 +384,10 @@ export default function TikTokDownloader() {
             viewport={{ once: true }}
           >
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-2">About Our Service</h2>
-              <p className="text-muted-foreground">Learn more about FusionTik and how it works</p>
+              <h2 className="text-3xl font-bold mb-2">Tentang FusionTik</h2>
+              <p className="text-muted-foreground">
+                FusionTik adalah TikTok downloader tanpa watermark untuk video, foto (Photo Mode), dan audio MP3.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
@@ -359,15 +401,15 @@ export default function TikTokDownloader() {
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4">
-                      FusionTik allows you to save TikTok videos, images, and audio files to your
-                      device without watermarks. Here's how it works:
+                      Dengan FusionTik kamu bisa menyimpan video TikTok, gambar, dan audio tanpa watermark langsung ke
+                      perangkat kamu. Cara pakainya sangat mudah:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                      <li>Copy the URL of the TikTok video or image you want to download</li>
-                      <li>Paste the URL in the input field above</li>
-                      <li>Click the "Download" button</li>
-                      <li>Choose the format you want to download (video, audio, or image)</li>
-                      <li>Save the file to your device</li>
+                      <li>Copy link video atau foto TikTok yang ingin kamu download</li>
+                      <li>Paste link tersebut ke kolom input di atas</li>
+                      <li>Klik tombol "Download"</li>
+                      <li>Pilih format yang kamu mau (video MP4, audio MP3, atau gambar)</li>
+                      <li>Simpan hasil download ke perangkat kamu</li>
                     </ol>
                   </CardContent>
                 </Card>
@@ -385,23 +427,23 @@ export default function TikTokDownloader() {
                     <ul className="space-y-3">
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">Free</Badge>
-                        <span>Our service is completely free to use with no hidden fees</span>
+                        <span>Layanan gratis 100% tanpa biaya tersembunyi</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">No Watermarks</Badge>
-                        <span>Download TikTok videos without the TikTok watermark</span>
+                        <span>Download video TikTok tanpa watermark TikTok</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">High Quality</Badge>
-                        <span>Download videos and images in the highest available quality</span>
+                        <span>Download video dan gambar dengan kualitas setinggi mungkin</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">Audio Extraction</Badge>
-                        <span>Extract and download only the audio from TikTok videos</span>
+                        <span>Ekstrak dan download hanya audio dari video TikTok (MP3)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">Download History</Badge>
-                        <span>Keep track of your downloaded content with our history feature</span>
+                        <span>Lihat riwayat konten yang sudah kamu download dengan fitur history</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -574,6 +616,11 @@ export default function TikTokDownloader() {
         )}
       </main>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Footer */}
       <motion.footer
         className="border-t py-8 mt-16"
@@ -590,7 +637,9 @@ export default function TikTokDownloader() {
                   FusionTik
                 </span>
               </div>
-              <p className="text-muted-foreground text-sm mt-2">Download TikTok videos, images, and audio easily</p>
+              <p className="text-muted-foreground text-sm mt-2">
+                TikTok downloader tanpa watermark untuk video, foto, dan audio MP3
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 text-sm">

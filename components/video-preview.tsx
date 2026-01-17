@@ -129,6 +129,17 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
   const isVideo = result.type === "video"
   const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
 
+  const formatResultDuration = (value?: string) => {
+    if (!value) return ""
+    const totalSeconds = Number(value)
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return value
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = Math.floor(totalSeconds % 60)
+    const mm = minutes.toString().padStart(2, "0")
+    const ss = seconds.toString().padStart(2, "0")
+    return `${mm}:${ss}`
+  }
+
   const renderDownloadButton = (
     label: string,
     url: string,
@@ -190,7 +201,16 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             )}
             <div className="flex items-center justify-center gap-3">
               <Badge variant="secondary" className="px-3 py-1">
-                {isVideo ? "🎥 Video" : "🖼️ Image"}
+                {isVideo ? (
+                  "🎥 Video"
+                ) : (
+                  <>
+                    🖼️{" "}
+                    {result.imageUrls && result.imageUrls.length > 0
+                      ? `Photo Mode (${result.imageUrls.length} images)`
+                      : "Image"}
+                  </>
+                )}
               </Badge>
               <span className="text-sm text-muted-foreground">{result.date}</span>
             </div>
@@ -373,8 +393,8 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                 {result.url}
               </a>
             </div>
-            {result.duration && (
-              <div>Duration: {result.duration}</div>
+            {isVideo && result.duration && (
+              <div>Duration: {formatResultDuration(result.duration)}</div>
             )}
             {result.size && (
               <div>Size: {result.size}</div>
