@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import nodemailer from "nodemailer"
 
 const tiktokRegex = /^(https?:\/\/)?(www\.)?(tiktok\.com|vt\.tiktok\.com|m\.tiktok\.com)\//
 
@@ -114,6 +115,103 @@ async function fetchFromSanka(url: string) {
   return { title, creator, thumbnail, videos, audio, slide, duration }
 }
 
+async function notifyProviderFailure(url: string, error: string) {
+  const webhookUrl = process.env.ALERT_WEBHOOK_URL
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID
+  const smtpHost = process.env.SMTP_HOST
+  const smtpPort = process.env.SMTP_PORT
+  const smtpUser = process.env.SMTP_USER
+  const smtpPass = process.env.SMTP_PASS
+  const alertEmailTo = process.env.ALERT_EMAIL_TO
+
+  if (
+    !webhookUrl &&
+    !telegramToken &&
+    !telegramChatId &&
+    !(smtpHost && smtpPort && smtpUser && smtpPass && alertEmailTo)
+  ) {
+    return
+  }
+
+  const payload = {
+    source: "fusiontik",
+    event: "tiktok_downloader_error",
+    url,
+    error,
+    timestamp: new Date().toISOString(),
+  }
+
+  const tasks: Promise<unknown>[] = []
+
+  if (webhookUrl) {
+    tasks.push(
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    )
+  }
+
+  if (telegramToken && telegramChatId) {
+    const text =
+      `⚠️ FusionTik downloader error\n` +
+      `URL: ${url}\n` +
+      `Error: ${error}\n` +
+      `Time: ${payload.timestamp}`
+
+    const tgUrl = `https://api.telegram.org/bot${telegramToken}/sendMessage`
+
+    tasks.push(
+      fetch(tgUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: telegramChatId,
+          text,
+        }),
+      }),
+    )
+  }
+
+  if (smtpHost && smtpPort && smtpUser && smtpPass && alertEmailTo) {
+    tasks.push(
+      (async () => {
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: Number(smtpPort),
+          secure: Number(smtpPort) === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        })
+
+        const text =
+          `FusionTik downloader error\n\n` +
+          `URL: ${url}\n` +
+          `Error: ${error}\n` +
+          `Time: ${payload.timestamp}\n`
+
+        await transporter.sendMail({
+          from: `"FusionTik Alert" <${smtpUser}>`,
+          to: alertEmailTo,
+          subject: "FusionTik TikTok downloader error",
+          text,
+        })
+      })(),
+    )
+  }
+
+  if (tasks.length === 0) return
+
+  try {
+    await Promise.allSettled(tasks)
+  } catch {
+  }
+}
+
 async function tiktok(url: string) {
   if (!tiktokRegex.test(url)) {
     throw new Error("Invalid URL")
@@ -151,7 +249,13 @@ export async function POST(req: Request) {
       result = await tiktok(url)
     } catch (err: any) {
       const message = err?.message || String(err)
-      return NextResponse.json({ error: message }, { status: 500 })
+      await notifyProviderFailure(url, message)
+      return NextResponse.json(
+        {
+          error: "Downloader sedang mengalami gangguan. Silakan coba lagi beberapa saat, atau hubungi admin jika masalah berlanjut.",
+        },
+        { status: 500 },
+      )
     }
 
     const images: string[] = Array.isArray(result.slide) ? result.slide : []

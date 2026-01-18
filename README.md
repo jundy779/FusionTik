@@ -1,204 +1,263 @@
 # 🚀 FusionTik - TikTok Downloader
 
-> Download TikTok videos, images, and audio without watermarks. Fast, free, and user-friendly.
+![Next.js](https://img.shields.io/badge/Next.js-15-blue?style=for-the-badge&logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Status](https://img.shields.io/badge/TikTok%20Downloader-Production%20Ready-brightgreen?style=for-the-badge)
 
-## 🌟 What is FusionTik?
+> Download TikTok videos, foto (Photo Mode), dan audio tanpa watermark. Cepat, gratis, dan simpel dipakai.
 
-FusionTik is your go-to solution for downloading TikTok content effortlessly. Whether you want to save videos, images, or extract audio, FusionTik makes it simple and fast. No watermarks, no hassle - just pure content downloading experience.
+## 🖼️ Preview
 
-**🌐 Try it now:** [FusionTik Live](https://fusiontik.vercel.app)
+Contoh tampilan UI (bisa kamu ganti kapan saja):
 
-### 🎯 Why Choose FusionTik?
+![FusionTik UI Preview](./public/placeholder.jpg)
 
-- 🎬 **Clean Downloads** - Get TikTok videos without any watermarks
-- 🖼️ **Photo Support** - Download image carousels and slideshows
-- 🎵 **Audio Only** - Extract just the music you love
-- 📱 **Works Everywhere** - Perfect on phone, tablet, or computer
-- ⚡ **Lightning Fast** - Downloads in seconds, not minutes
-- 🔒 **Your Privacy** - We don't store your data or track you
-- 💾 **Smart History** - Never lose track of what you've downloaded
-- 🆓 **Always Free** - No hidden costs, no premium tiers
+## 🌟 Apa itu FusionTik?
 
-## 🛠️ Built With Modern Tech
+FusionTik adalah web TikTok downloader modern untuk simpan konten TikTok tanpa ribet. Tinggal paste link, pilih format, dan download tanpa watermark.
 
-- **⚛️ Next.js 15** - The latest React framework for optimal performance
-- **📘 TypeScript** - Type-safe development for reliability
-- **🎨 Tailwind CSS** - Utility-first styling for beautiful designs
-- **🧩 shadcn/ui** - High-quality, accessible UI components
-- **🎭 Framer Motion** - Smooth animations and transitions
-- **🔗 Lucide Icons** - Beautiful, consistent iconography
-- **🌐 External APIs** - Reliable TikTok content extraction
+**🌐 Live demo:** [https://fusiontik.vercel.app](https://fusiontik.vercel.app)
+
+### 🎯 Kenapa pakai FusionTik?
+
+- 🎬 **Tanpa Watermark** – Download video TikTok bersih tanpa logo
+- 🖼️ **Support Photo Mode** – Bisa download carousel / slide foto TikTok
+- 🎵 **Audio Only** – Ekstrak hanya suaranya (musik) dari video
+- 📱 **Responsif** – Enak dipakai di HP, tablet, dan desktop
+- ⚡ **Cepat** – Proses download dalam hitungan detik
+- 💾 **Riwayat Download** – History tersimpan di device kamu
+- 🌍 **Global Stats** – Counter total download seluruh pengguna
+- 🛡️ **Notifikasi Error** – Owner bisa dapat notif kalau API provider error
+
+## 🛠️ Tech Stack
+
+- **⚛️ Next.js 15** – App Router, SEO-friendly
+- **📘 TypeScript** – Type-safe dan maintainable
+- **🎨 Tailwind CSS** – Utility-first styling
+- **🧩 shadcn/ui** – Komponen UI siap pakai
+- **🎭 Framer Motion** – Animasi halus
+- **📊 Supabase** – Penyimpanan statistik global
+- **✉️ Nodemailer + Telegram Bot** – Notifikasi gangguan API ke owner
 
 ## 🚀 Quick Start
 
-### What You'll Need
+### Prasyarat
 
-- **Node.js 18+** (Latest LTS recommended)
-- **Package Manager** (npm, yarn, or pnpm)
+- **Node.js 18+**
+- **npm / pnpm / yarn**
 
-### Get Started
-
-1. **Clone the repository:**
+### Clone & install
 
 ```bash
 git clone https://github.com/jundy779/FusionTik.git
 cd FusionTik
-```
 
-2. **Install dependencies:**
-
-```bash
+# pilih salah satu package manager
 npm install
-# or
-yarn install
-# or
+# atau
 pnpm install
+# atau
+yarn install
 ```
 
-## 🎮 Running FusionTik
+## 🎮 Menjalankan Project
 
 ### Development
-
-Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Visit <http://localhost:3000> to see FusionTik in action!
+Buka <http://localhost:3000>.
 
 ### Production
-
-Build for production:
 
 ```bash
 npm run build
 npm run start
 ```
 
-Customize the port:
+Custom port:
 
 ```bash
 PORT=8080 npm run start
 ```
 
-## 📁 Project Structure
+## ⚙️ Environment Variables
+
+Contoh `.env.local` minimal:
+
+```env
+# Supabase (untuk global stats)
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+# Notifikasi error (opsional tapi direkomendasikan)
+TELEGRAM_BOT_TOKEN= # token bot Telegram
+TELEGRAM_CHAT_ID=   # chat id penerima notif
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=youremail@gmail.com
+SMTP_PASS=yourapppassword
+ALERT_EMAIL_TO=owner@domain.com
+```
+
+Notifikasi akan dikirim ketika provider TikTok API gagal merespons (fallback error).
+
+## 🌐 Deployment / Hosting
+
+### 1. Deploy ke Vercel (recommended)
+
+1. Fork repo ini ke akun GitHub kamu
+2. Buka [https://vercel.com/import](https://vercel.com/import) dan pilih repo **FusionTik**
+3. Set environment variables di Vercel:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (opsional)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ALERT_EMAIL_TO` (opsional)
+4. Deploy, dan Vercel akan build + host otomatis
+
+### 2. Deploy ke VPS / Server sendiri
+
+- Clone repo di server
+- Set `.env.local` sesuai kebutuhan
+- Jalankan:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+Gunakan process manager seperti `pm2`, `docker` (kalau kamu buat Dockerfile sendiri), atau systemd service sesuai preferensi.
+
+## 📁 Struktur Project
 
 ```
 FusionTik/
-├── app/                          # Next.js App Router
-│   ├── api/                      # API Routes
+├── app/
+│   ├── api/
 │   │   ├── tiktok/
-│   │   │   └── route.ts          # TikTok download API endpoint
+│   │   │   └── route.ts        # Endpoint utama TikTok downloader + fallback provider
 │   │   └── global-stats/
-│   │       └── route.ts          # Global download counter API
-│   ├── globals.css               # Global styles
-│   ├── layout.tsx                # Root layout
-│   └── page.tsx                  # Home page (main downloader)
+│   │       └── route.ts        # API global download counter
+│   ├── layout.tsx              # Root layout + SEO + verification
+│   └── page.tsx                # Halaman utama downloader
 │
-├── components/                   # React components
-│   ├── ui/                       # shadcn/ui components
-│   ├── navbar.tsx                # Navigation bar component
-│   ├── result-buttons.tsx        # Download result buttons
-│   ├── result-card.tsx           # Download history card
-│   ├── stats-card.tsx            # Download statistics card
-│   ├── video-preview.tsx         # Video preview with caption
-│   └── video-preview-modal.tsx   # Video preview modal
+├── components/
+│   ├── ui/                     # Komponen shadcn/ui
+│   ├── navbar.tsx
+│   ├── result-buttons.tsx
+│   ├── result-card.tsx
+│   ├── stats-card.tsx
+│   ├── video-preview.tsx       # Preview video + Photo Mode
+│   └── video-preview-modal.tsx
 │
-├── hooks/                        # Custom React hooks
-│   ├── use-download-history.ts   # Download history management
-│   ├── use-download-stats.ts     # Individual user statistics
-│   └── use-global-stats.ts       # Global download counter
+├── hooks/
+│   ├── use-download-history.ts # Riwayat download per user
+│   ├── use-download-stats.ts   # Statistik per user
+│   └── use-global-stats.ts     # Global counter
 │
-├── lib/                          # Utility libraries
-│   └── utils.ts                  # Helper functions
+├── lib/
+│   └── utils.ts                # Helper utilities
 │
-├── data/                         # Data storage
-│   └── global-stats.json         # Global counter persistence
+├── data/
+│   └── global-stats.json       # Persistensi global counter (server side)
 │
-├── public/                       # Static assets
-│   └── ...
+├── public/                     # Static assets
 │
-├── .eslintrc.json               # ESLint configuration
-├── .gitignore                   # Git ignore file
-├── components.json              # shadcn/ui configuration
-├── next.config.mjs              # Next.js configuration
-├── package.json                 # Project dependencies
-├── postcss.config.mjs           # PostCSS configuration
-├── tailwind.config.ts           # Tailwind CSS configuration
-├── tsconfig.json                # TypeScript configuration
-└── README.md                    # Project documentation
+├── next.config.mjs
+├── tailwind.config.ts
+├── tsconfig.json
+└── README.md
 ```
 
-## 💡 How It Works
+## 💡 Cara Kerja Singkat
 
-### 🎬 Video Downloads
+### 🎬 Video & Photo Mode
 
-- Paste any TikTok video URL
-- Get clean MP4 files without watermarks
-- Choose between standard and HD quality
-- Multiple download options (MP4 [1], MP4 HD, MP3)
+- User paste URL TikTok
+- Backend memanggil beberapa provider (misal: Zell, Sanka) dengan fallback
+- Response diproses dan ditampilkan di UI
+- Pengguna bisa download:
+  - Video tanpa watermark (MP4)
+  - Audio saja (MP3)
+  - Carousel foto (Photo Mode)
 
-### 🖼️ Image Collections
+### 🔔 Notifikasi Error Provider
 
-- Download entire photo carousels
-- Save individual images or all at once
-- Maintains original image quality
+- Jika provider utama gagal
+- Sistem mencoba fallback provider lain
+- Jika semua gagal:
+  - Kirim notif ke webhook/Telegram/email (kalau env diset)
+  - User tetap dapat pesan error yang rapi di UI
 
-### 🎵 Audio Extraction
+### 📊 Statistik
 
-- Extract just the audio from videos
-- Get MP3 files ready to use
-- Perfect for music lovers
+- Global counter menggunakan Supabase + file JSON
+- Statistik per user dan history disimpan di local storage (client-side)
 
-### 📚 Smart History
+## 🛡️ Privasi
 
-- Your downloads are saved locally
-- Access previous downloads anytime
-- Manage your collection easily
-- Personal download statistics
+- Tidak menyimpan file video/audio di server
+- History hanya disimpan di device pengguna
+- Tidak ada tracking pihak ketiga
 
-### 🌍 Global Counter
+## 🤝 Kontribusi
 
-- Track total downloads worldwide
-- Persistent storage across server restarts
-- Real-time counter updates
+Pull request sangat diterima. Secara garis besar:
 
-## 🛡️ Your Privacy Matters
+1. Fork repo
+2. Buat branch baru
+3. Commit perubahan
+4. Buka Pull Request ke repo utama
 
-- **🔒 Zero Data Storage** - We don't keep your downloads on our servers
-- **💻 Local Only** - Your history stays on your device
-- **👻 No Tracking** - We don't follow you around the internet
-- **📖 Open Source** - You can see exactly what we do
+## 🐛 Bug Report
 
-## 🤝 Want to Help?
+Saat lapor bug, sertakan:
 
-We'd love your contributions! Here's how:
+- Langkah reproduksi
+- URL yang digunakan
+- Expected vs actual behavior
+- Info browser/device
 
-1. **🍴 Fork this repo**
-2. **🌿 Create a branch:**  
-   ```bash
-   git checkout -b your-awesome-feature
-   ```
-3. **💾 Commit your changes:**  
-   ```bash
-   git commit -m 'Add your awesome feature'
-   ```
-4. **🚀 Push and create a PR**
+## 📝 Kredit
 
-## 🐛 Found a Bug?
-
-Help us fix it! Please include:
-
-- What went wrong
-- How to make it happen again
-- What you expected vs what happened
-- Screenshots if helpful
-- Your device/browser info
-
-## 📝 License
+- Template UI dan banyak komponen terinspirasi dari ekosistem **shadcn/ui**
+- Developed by **Fusionify.ID**
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🌍 English Overview
+
+**FusionTik** is a modern TikTok downloader web app that lets you:
+
+- Download TikTok videos without watermark
+- Download Photo Mode / image carousels
+- Extract audio only (MP3)
+- Track global download statistics
+- Send error notifications to the owner via Telegram bot / email
+
+### Tech
+
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase for global stats
+- Nodemailer + Telegram Bot for alerts
+
+### Run locally
+
+```bash
+git clone https://github.com/jundy779/FusionTik.git
+cd FusionTik
+npm install
+npm run dev
+```
+
+Then open <http://localhost:3000>.
 
 ## ⚖️ Important Notice
 
