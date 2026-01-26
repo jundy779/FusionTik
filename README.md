@@ -4,7 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![Status](https://img.shields.io/badge/TikTok%20Downloader-Production%20Ready-brightgreen?style=for-the-badge)
-
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/jundy779/FusionTik?utm_source=oss&utm_medium=github&utm_campaign=jundy779%2FFusionTik&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 > Download TikTok videos, foto (Photo Mode), dan audio tanpa watermark. Cepat, gratis, dan simpel dipakai.
 
 ## 🖼️ Preview
