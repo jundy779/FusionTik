@@ -7,7 +7,14 @@ import { motion } from "framer-motion"
 import { Download, Info, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Navbar } from "@/components/navbar"
@@ -18,39 +25,21 @@ import { VideoPreview } from "@/components/video-preview"
 import { useDownloadHistory, type DownloadHistoryItem } from "@/hooks/use-download-history"
 import { useDownloadStats } from "@/hooks/use-download-stats"
 import { useGlobalStats } from "@/hooks/use-global-stats"
+import { downloadWithProgress, generateFilename } from "@/lib/download-utils"
 
-async function fetchTikTokData(url: string) {
-  try {
-    const res = await fetch("/api/tiktok", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    })
-    const data = await res.json()
+// ============== Types ==============
 
-    if (!res.ok) {
-      throw new Error(data.error || `Server returned ${res.status}: ${res.statusText}`)
-    }
-    if (data.error) {
-      throw new Error(data.error)
-    }
-
-    if (data.type === "video") {
-      if (!data.video) {
-        throw new Error("No video URL found in the response")
-      }
-    } else if (data.type === "image") {
-      if (!Array.isArray(data.images) || data.images.length === 0) {
-        throw new Error("No images found in the response")
-      }
-    } else {
-      throw new Error("Unknown content type returned from API")
-    }
-    return data
-  } catch (error) {
-    console.error("Error in fetchTikTokData:", error)
-    throw error
-  }
+interface TikTokApiResponse {
+  type: "video" | "image"
+  video?: string
+  videoHd?: string
+  videos?: string[]
+  images?: string[]
+  music?: string
+  description?: string
+  creator?: string
+  duration?: string
+  error?: string
 }
 
 interface TikTokResult {
@@ -68,54 +57,101 @@ interface TikTokResult {
   duration?: string
 }
 
+// ============== FAQ Schema (structured data) ==============
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Is this service free?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions required.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is it legal to download TikTok videos?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Downloading videos for personal use is generally acceptable. However, you should not redistribute or use the content commercially without permission from the creator.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What formats can I download?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG images depending on the original content type.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Do you store the downloaded videos?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "No, we don't store any downloaded videos or user data on our servers. Your download history is saved locally on your device only.",
+      },
+    },
+  ],
+}
+
+// ============== API helper ==============
+
+async function fetchTikTokData(url: string): Promise<TikTokApiResponse> {
+  const res = await fetch("/api/tiktok", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  })
+
+  const data = (await res.json()) as TikTokApiResponse
+
+  if (!res.ok || data.error) {
+    throw new Error(data.error ?? `Server returned ${res.status}: ${res.statusText}`)
+  }
+
+  if (data.type === "video") {
+    if (!data.video) throw new Error("No video URL found in the response")
+  } else if (data.type === "image") {
+    if (!Array.isArray(data.images) || data.images.length === 0) {
+      throw new Error("No images found in the response")
+    }
+  } else {
+    throw new Error("Unknown content type returned from API")
+  }
+
+  return data
+}
+
+// ============== Animation variants ==============
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+}
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } },
+}
+
+// ============== Page Component ==============
+
 export default function TikTokDownloader() {
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [currentResult, setCurrentResult] = useState<TikTokResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+
   const { toast } = useToast()
   const { history, addToHistory, removeFromHistory, clearHistory } = useDownloadHistory()
   const { resetStats } = useDownloadStats()
   const { globalStats, incrementGlobalCounter } = useGlobalStats()
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Is this service free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions required.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is it legal to download TikTok videos?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Downloading videos for personal use is generally acceptable. However, you should not redistribute or use the content commercially without permission from the creator.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "What formats can I download?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG images depending on the original content type.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Do you store the downloaded videos?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "No, we don't store any downloaded videos or user data on our servers. Your download history is saved locally on your device only.",
-        },
-      },
-    ],
-  }
+  // ---- Handlers ----
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,38 +165,32 @@ export default function TikTokDownloader() {
 
       const newResult: TikTokResult = {
         id: Date.now(),
-        url: url,
-        type: data.type || "video",
-        date: new Date().toLocaleDateString(),
+        url,
+        type: data.type,
+        date: new Date().toISOString(),
         videoUrl: data.type === "video" ? data.video : undefined,
         videoHdUrl: data.type === "video" ? data.videoHd : undefined,
         videos: data.type === "video" ? data.videos : undefined,
-        audioUrl: data.music || undefined,
-        imageUrls: data.type === "image" ? (data.images as string[]) : undefined,
+        audioUrl: data.music,
+        imageUrls: data.type === "image" ? data.images : undefined,
         description: data.description,
         creator: data.creator,
         duration: data.duration,
       }
+
       setCurrentResult(newResult)
-
       addToHistory(newResult as DownloadHistoryItem)
-
       await incrementGlobalCounter()
 
       toast({
         title: "Download ready!",
         description: "Your TikTok video has been processed successfully.",
       })
-    } catch (error) {
-      console.error("Error downloading TikTok:", error)
-      const errorMessage = error instanceof Error ? error.message : "Failed to download TikTok"
-      setError(errorMessage)
-
-      toast({
-        variant: "destructive",
-        title: "Download failed",
-        description: errorMessage,
-      })
+    } catch (err) {
+      console.error("Error downloading TikTok:", err)
+      const message = err instanceof Error ? err.message : "Failed to download TikTok"
+      setError(message)
+      toast({ variant: "destructive", title: "Download failed", description: message })
     } finally {
       setIsLoading(false)
     }
@@ -173,7 +203,7 @@ export default function TikTokDownloader() {
 
   const handlePasteClick = async () => {
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.readText) {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
         const text = await navigator.clipboard.readText()
         if (text) {
           setUrl(text.trim())
@@ -181,53 +211,57 @@ export default function TikTokDownloader() {
           return
         }
       }
+    } catch {
+      // Clipboard API not available or denied — fall through to manual prompt
+    }
 
-      const manual = window.prompt("Paste TikTok URL here:", "")
-      if (manual) {
-        setUrl(manual.trim())
-        toast({ title: "URL set", description: "URL pasted manually" })
-      } else {
-        toast({ variant: "destructive", title: "No URL provided", description: "Could not obtain URL from clipboard" })
-      }
-    } catch (err) {
-      console.error("Failed to read clipboard:", err)
-
-      const manual = window.prompt("Paste TikTok URL here:", "")
-      if (manual) {
-        setUrl(manual.trim())
-        toast({ title: "URL set", description: "URL pasted manually" })
-      } else {
-        toast({ variant: "destructive", title: "Clipboard error", description: "Could not read from clipboard" })
-      }
+    const manual = window.prompt("Paste TikTok URL here:", "")
+    if (manual) {
+      setUrl(manual.trim())
+      toast({ title: "URL set", description: "URL pasted manually" })
+    } else {
+      toast({
+        variant: "destructive",
+        title: "No URL provided",
+        description: "Could not obtain URL from clipboard",
+      })
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  // ---- History download helpers ----
+
+  const handleHistoryDownloadVideo = (item: DownloadHistoryItem) => {
+    if (item.type === "image") {
+      item.imageUrls?.forEach((imgUrl, index) => {
+        const filename = generateFilename("image", item.creator, index)
+        downloadWithProgress(imgUrl, filename).catch((err) =>
+          console.error("Failed to download image:", err),
+        )
+      })
+    } else if (item.videoUrl) {
+      const filename = generateFilename("video", item.creator)
+      downloadWithProgress(item.videoUrl, filename).catch((err) =>
+        console.error("Failed to download video:", err),
+      )
+    }
   }
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100 },
-    },
+  const handleHistoryDownloadAudio = (item: DownloadHistoryItem) => {
+    if (!item.audioUrl) return
+    const filename = generateFilename("audio", item.creator)
+    downloadWithProgress(item.audioUrl, filename).catch((err) =>
+      console.error("Failed to download audio:", err),
+    )
   }
+
+  // ---- JSX ----
 
   return (
     <div className="min-h-screen">
-      {/* Navbar */}
       <Navbar />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
+        {/* Hero / Download Section */}
         {!currentResult && (
           <motion.section
             id="download"
@@ -248,8 +282,8 @@ export default function TikTokDownloader() {
                 TikTok Downloader Tanpa Watermark (Video, Foto, MP3)
               </h3>
               <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
-                Download video TikTok tanpa watermark, simpan Photo Mode jadi gambar, dan ekstrak audio MP3 secara
-                gratis dengan kualitas tinggi langsung dari browser kamu.
+                Download video TikTok tanpa watermark, simpan Photo Mode jadi gambar, dan ekstrak
+                audio MP3 secara gratis dengan kualitas tinggi langsung dari browser kamu.
               </p>
               <motion.div
                 className="inline-block"
@@ -260,9 +294,7 @@ export default function TikTokDownloader() {
                   <p className="text-xl font-bold">
                     🌍 {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
                   </p>
-                  <p className="text-sm opacity-90 mt-1">
-                    Trusted by users globally
-                  </p>
+                  <p className="text-sm opacity-90 mt-1">Trusted by users globally</p>
                 </div>
               </motion.div>
             </motion.div>
@@ -271,7 +303,9 @@ export default function TikTokDownloader() {
               <Card className="glass-card animated-border overflow-hidden">
                 <CardHeader className="text-center pb-2">
                   <CardTitle className="text-2xl text-gradient">Enter TikTok URL</CardTitle>
-                  <CardDescription className="text-base">Paste the link to the TikTok video or image you want to download</CardDescription>
+                  <CardDescription className="text-base">
+                    Paste the link to the TikTok video or image you want to download
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <form onSubmit={handleSubmit} className="flex gap-3 flex-col sm:flex-row">
@@ -327,7 +361,7 @@ export default function TikTokDownloader() {
           </motion.section>
         )}
 
-        {/* Loading Section */}
+        {/* Loading */}
         {isLoading && (
           <motion.div
             className="flex flex-col items-center justify-center py-20"
@@ -335,28 +369,36 @@ export default function TikTokDownloader() {
             animate={{ opacity: 1, scale: 1 }}
           >
             <div className="relative">
-              <div className="absolute inset-0 gradient-bg rounded-full blur-xl opacity-50 animate-pulse"></div>
+              <div className="absolute inset-0 gradient-bg rounded-full blur-xl opacity-50 animate-pulse" />
               <Loader2 className="relative h-16 w-16 animate-spin text-blue-500" />
             </div>
-            <h3 className="text-2xl font-semibold mt-8 text-gradient">Processing your download...</h3>
+            <h3 className="text-2xl font-semibold mt-8 text-gradient">
+              Processing your download...
+            </h3>
             <p className="text-muted-foreground mt-3 text-lg">This may take a few moments</p>
           </motion.div>
         )}
 
+        {/* Result */}
         {currentResult && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8">
             <VideoPreview
               result={currentResult}
               onDownloadVideo={() => {
                 if (currentResult.videoUrl) {
-                  window.open(currentResult.videoUrl, '_blank')
+                  const filename = generateFilename("video", currentResult.creator)
+                  downloadWithProgress(currentResult.videoUrl, filename)
                 } else if (currentResult.imageUrls && currentResult.imageUrls.length > 0) {
-                  currentResult.imageUrls.forEach(url => window.open(url, '_blank'))
+                  currentResult.imageUrls.forEach((imgUrl, index) => {
+                    const filename = generateFilename("image", currentResult.creator, index)
+                    downloadWithProgress(imgUrl, filename)
+                  })
                 }
               }}
               onDownloadAudio={() => {
                 if (currentResult.audioUrl) {
-                  window.open(currentResult.audioUrl, '_blank')
+                  const filename = generateFilename("audio", currentResult.creator)
+                  downloadWithProgress(currentResult.audioUrl, filename)
                 }
               }}
             />
@@ -386,12 +428,16 @@ export default function TikTokDownloader() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Tentang FusionTik</h2>
               <p className="text-muted-foreground">
-                FusionTik adalah TikTok downloader tanpa watermark untuk video, foto (Photo Mode), dan audio MP3.
+                FusionTik adalah TikTok downloader tanpa watermark untuk video, foto (Photo Mode),
+                dan audio MP3.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -401,8 +447,8 @@ export default function TikTokDownloader() {
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4">
-                      Dengan FusionTik kamu bisa menyimpan video TikTok, gambar, dan audio tanpa watermark langsung ke
-                      perangkat kamu. Cara pakainya sangat mudah:
+                      Dengan FusionTik kamu bisa menyimpan video TikTok, gambar, dan audio tanpa
+                      watermark langsung ke perangkat kamu. Cara pakainya sangat mudah:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                       <li>Copy link video atau foto TikTok yang ingin kamu download</li>
@@ -415,7 +461,10 @@ export default function TikTokDownloader() {
                 </Card>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              >
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -443,7 +492,9 @@ export default function TikTokDownloader() {
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-1 bg-blue-600">Download History</Badge>
-                        <span>Lihat riwayat konten yang sudah kamu download dengan fitur history</span>
+                        <span>
+                          Lihat riwayat konten yang sudah kamu download dengan fitur history
+                        </span>
                       </li>
                     </ul>
                   </CardContent>
@@ -453,7 +504,7 @@ export default function TikTokDownloader() {
           </motion.section>
         )}
 
-        {/* Download History Section */}
+        {/* Download History */}
         {!currentResult && (
           <motion.section
             id="history"
@@ -467,6 +518,7 @@ export default function TikTokDownloader() {
               <h2 className="text-3xl font-bold mb-2">Download History</h2>
               <p className="text-muted-foreground">Your downloaded TikTok videos and images</p>
             </div>
+
             {history.length > 0 ? (
               <>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -481,31 +533,10 @@ export default function TikTokDownloader() {
                         description: item.description,
                         creator: item.creator,
                         duration: item.duration,
+                        audioUrl: item.audioUrl,
                       }}
-                      onDownloadVideo={() => {
-                        if (item.type === "image") {
-                          item.imageUrls?.forEach((img) => {
-                            try {
-                              window.open(img, "_blank")
-                            } catch (e) {
-                              console.error("Failed to open image:", e)
-                            }
-                          })
-                        } else {
-                          if (item.videoUrl) {
-                            window.open(item.videoUrl, "_blank")
-                          }
-                        }
-                      }}
-                      onDownloadAudio={() => {
-                        if (item.audioUrl) {
-                          try {
-                            window.open(item.audioUrl, "_blank")
-                          } catch (e) {
-                            console.error("Failed to open audio:", e)
-                          }
-                        }
-                      }}
+                      onDownloadVideo={() => handleHistoryDownloadVideo(item)}
+                      onDownloadAudio={() => handleHistoryDownloadAudio(item)}
                       onDelete={() => removeFromHistory(item.id)}
                       isHistoryItem
                     />
@@ -518,12 +549,14 @@ export default function TikTokDownloader() {
                 </div>
               </>
             ) : (
-              <p className="text-muted-foreground text-center">You have no download history yet.</p>
+              <p className="text-muted-foreground text-center">
+                You have no download history yet.
+              </p>
             )}
           </motion.section>
         )}
 
-        {/* Download Stats Section */}
+        {/* Personal Stats */}
         {!currentResult && (
           <motion.section
             id="stats"
@@ -536,17 +569,21 @@ export default function TikTokDownloader() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Your Personal Download Statistics</h2>
               <p className="text-muted-foreground">
-                Track your personal download activity. These stats are stored locally and can be reset without affecting the global counter.
+                Track your personal download activity. These stats are stored locally and can be
+                reset without affecting the global counter.
               </p>
             </div>
-            <StatsCard onResetStats={() => {
-              resetStats()
-              clearHistory()
-              toast({
-                title: "Local Stats Reset",
-                description: "Your personal download statistics have been cleared. Global counter remains unchanged.",
-              })
-            }} />
+            <StatsCard
+              onResetStats={() => {
+                resetStats()
+                clearHistory()
+                toast({
+                  title: "Local Stats Reset",
+                  description:
+                    "Your personal download statistics have been cleared. Global counter remains unchanged.",
+                })
+              }}
+            />
           </motion.section>
         )}
 
@@ -560,7 +597,9 @@ export default function TikTokDownloader() {
           >
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Frequently Asked Questions</h2>
-              <p className="text-muted-foreground">Get answers to common questions about our service</p>
+              <p className="text-muted-foreground">
+                Get answers to common questions about our service
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -570,20 +609,23 @@ export default function TikTokDownloader() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions
-                    required.
+                    Yes, FusionTik is completely free to use. There are no hidden fees or
+                    subscriptions required.
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Is it legal to download TikTok videos?</CardTitle>
+                  <CardTitle className="text-lg">
+                    Is it legal to download TikTok videos?
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Downloading videos for personal use is generally acceptable. However, you should not redistribute or
-                    use the content commercially without permission from the creator.
+                    Downloading videos for personal use is generally acceptable. However, you should
+                    not redistribute or use the content commercially without permission from the
+                    creator.
                   </p>
                 </CardContent>
               </Card>
@@ -594,8 +636,8 @@ export default function TikTokDownloader() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG images depending on the
-                    original content type.
+                    You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG
+                    images depending on the original content type.
                   </p>
                 </CardContent>
               </Card>
@@ -606,8 +648,8 @@ export default function TikTokDownloader() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    No, we don't store any downloaded videos or user data on our servers. Your download history is saved
-                    locally on your device only.
+                    No, we don&apos;t store any downloaded videos or user data on our servers. Your
+                    download history is saved locally on your device only.
                   </p>
                 </CardContent>
               </Card>
@@ -616,6 +658,7 @@ export default function TikTokDownloader() {
         )}
       </main>
 
+      {/* Structured data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
@@ -710,7 +753,9 @@ export default function TikTokDownloader() {
 
           <div className="border-t mt-8 pt-8 text-center text-muted-foreground text-sm">
             <p>© {new Date().getFullYear()} Fusionify.ID. All rights reserved.</p>
-            <p className="mt-1">This service is not affiliated with TikTok or ByteDance Ltd.</p>
+            <p className="mt-1">
+              This service is not affiliated with TikTok or ByteDance Ltd.
+            </p>
           </div>
         </div>
       </motion.footer>

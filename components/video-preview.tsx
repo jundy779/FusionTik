@@ -11,36 +11,71 @@ import {
   downloadWithProgress,
   generateFilename,
   formatFileSize,
-  type DownloadProgress
+  type DownloadProgress,
 } from "@/lib/download-utils"
 
-const makeLinksClickable = (text: string): string => {
+// ============== Helpers ==============
+
+/**
+ * Sanitizes a plain-text TikTok caption and converts URLs, @mentions, and
+ * #hashtags into safe anchor tags.  Uses textContent assignment to prevent XSS
+ * instead of raw string interpolation.
+ */
+function makeLinksClickable(text: string): string {
   if (!text) return ""
 
-  let processedText = text
+  // Escape HTML entities first to prevent XSS
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
 
-  const urlRegex = /(https?:\/\/[^\s]+)/g
-  processedText = processedText.replace(urlRegex, (url) => {
+  const linkClass =
+    "text-blue-500 hover:text-blue-700 hover:underline transition-colors"
+
+  // URLs
+  let processed = escaped.replace(/(https?:\/\/[^\s]+)/g, (url) => {
     try {
       new URL(url)
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 hover:underline transition-colors">${url}</a>`
-    } catch (e) {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="${linkClass}">${url}</a>`
+    } catch {
       return url
     }
   })
 
-  const mentionRegex = /@([a-zA-Z0-9_.]+)/g
-  processedText = processedText.replace(mentionRegex, (match, username) => {
-    return `<a href="https://tiktok.com/@${username}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 hover:underline transition-colors">@${username}</a>`
+  // @mentions
+  processed = processed.replace(/@([a-zA-Z0-9_.]+)/g, (_, username: string) => {
+    const safeUsername = encodeURIComponent(username)
+    return `<a href="https://tiktok.com/@${safeUsername}" target="_blank" rel="noopener noreferrer" class="${linkClass}">@${username}</a>`
   })
 
-  const hashtagRegex = /#([a-zA-Z0-9_]+)/g
-  processedText = processedText.replace(hashtagRegex, (match, hashtag) => {
-    return `<a href="https://tiktok.com/tag/${hashtag}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 hover:underline transition-colors">#${hashtag}</a>`
+  // #hashtags
+  processed = processed.replace(/#([a-zA-Z0-9_]+)/g, (_, hashtag: string) => {
+    const safeHashtag = encodeURIComponent(hashtag)
+    return `<a href="https://tiktok.com/tag/${safeHashtag}" target="_blank" rel="noopener noreferrer" class="${linkClass}">#${hashtag}</a>`
   })
 
-  return processedText
+  return processed
 }
+
+function formatTime(time: number): string {
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.floor(time % 60)
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`
+}
+
+function formatResultDuration(value?: string): string {
+  if (!value) return ""
+  const totalSeconds = Number(value)
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return value
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+}
+
+// ============== Types ==============
 
 interface VideoPreviewProps {
   result: {
@@ -63,61 +98,59 @@ interface VideoPreviewProps {
   onDownloadAudio: () => void
 }
 
-type DownloadType = 'video1' | 'video2' | 'videoHd' | 'audio' | 'image' | null
+type DownloadType = "video1" | "video2" | "videoHd" | "audio" | "image" | null
+
+// ============== Component ==============
 
 export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: VideoPreviewProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Download state
   const [downloading, setDownloading] = useState<DownloadType>(null)
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null)
 
+  const isVideo = result.type === "video"
+  const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
+
+  // ---- Video controls ----
+
   const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
+    if (!videoRef.current) return
+    if (isPlaying) {
+      videoRef.current.pause()
+    } else {
+      videoRef.current.play()
     }
+    setIsPlaying(!isPlaying)
   }
 
   const handleMuteToggle = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
-    }
+    if (!videoRef.current) return
+    videoRef.current.muted = !isMuted
+    setIsMuted(!isMuted)
   }
 
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime)
-      setDuration(videoRef.current.duration)
-    }
+    if (!videoRef.current) return
+    setCurrentTime(videoRef.current.currentTime)
+    setVideoDuration(videoRef.current.duration)
   }
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-    const seconds = Math.floor(time % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+  // ---- Download ----
 
   const handleDownload = async (
     url: string,
-    type: 'video' | 'audio' | 'image',
+    type: "video" | "audio" | "image",
     downloadType: DownloadType,
-    index?: number
+    index?: number,
   ) => {
     setDownloading(downloadType)
     setDownloadProgress(null)
 
     const filename = generateFilename(type, result.creator, index)
-
     await downloadWithProgress(url, filename, (progress) => {
       setDownloadProgress(progress)
     })
@@ -126,28 +159,31 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
     setDownloadProgress(null)
   }
 
-  const isVideo = result.type === "video"
-  const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
+  const handleDownloadAllImages = async () => {
+    if (!result.imageUrls || result.imageUrls.length === 0) return
+    setDownloading("image")
+    setDownloadProgress(null)
 
-  const formatResultDuration = (value?: string) => {
-    if (!value) return ""
-    const totalSeconds = Number(value)
-    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return value
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = Math.floor(totalSeconds % 60)
-    const mm = minutes.toString().padStart(2, "0")
-    const ss = seconds.toString().padStart(2, "0")
-    return `${mm}:${ss}`
+    // Download images sequentially to avoid browser popup blocking
+    for (let i = 0; i < result.imageUrls.length; i++) {
+      const filename = generateFilename("image", result.creator, i)
+      await downloadWithProgress(result.imageUrls[i], filename)
+    }
+
+    setDownloading(null)
+    setDownloadProgress(null)
   }
+
+  // ---- Render helpers ----
 
   const renderDownloadButton = (
     label: string,
     url: string,
-    type: 'video' | 'audio' | 'image',
+    type: "video" | "audio" | "image",
     downloadType: DownloadType,
     gradient: string,
     icon: React.ReactNode,
-    index?: number
+    index?: number,
   ) => {
     const isDownloading = downloading === downloadType
 
@@ -175,13 +211,17 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
           <div className="space-y-1">
             <Progress value={downloadProgress.percent} className="h-2" />
             <p className="text-xs text-muted-foreground text-center">
-              {downloadProgress.percent}% • {formatFileSize(downloadProgress.loaded)} / {formatFileSize(downloadProgress.total)}
+              {downloadProgress.percent}% •{" "}
+              {formatFileSize(downloadProgress.loaded)} /{" "}
+              {formatFileSize(downloadProgress.total)}
             </p>
           </div>
         )}
       </div>
     )
   }
+
+  // ---- JSX ----
 
   return (
     <motion.div
@@ -196,7 +236,8 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             <h2 className="text-2xl font-bold text-blue-600">Download Ready!</h2>
             {result.creator && (
               <p className="text-muted-foreground">
-                Video by <span className="font-medium text-blue-600">@{result.creator}</span>
+                Video by{" "}
+                <span className="font-medium text-blue-600">@{result.creator}</span>
               </p>
             )}
             <div className="flex items-center justify-center gap-3">
@@ -218,7 +259,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Video/Image Preview */}
+          {/* Video / Image Preview */}
           <div className="relative bg-black rounded-lg overflow-hidden">
             {isVideo && mediaUrl ? (
               <div className="relative">
@@ -233,7 +274,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                   loop
                 />
 
-                {/* Video Controls Overlay */}
+                {/* Play / Pause overlay */}
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                   <Button
                     size="lg"
@@ -249,24 +290,30 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                   </Button>
                 </div>
 
-                {/* Video Progress Bar */}
+                {/* Progress bar */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
                   <div className="flex items-center gap-2 text-white text-sm">
                     <span>{formatTime(currentTime)}</span>
                     <div className="flex-1 bg-white/20 rounded-full h-1">
                       <div
                         className="bg-white rounded-full h-1 transition-all duration-300"
-                        style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                        style={{
+                          width: `${videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0}%`,
+                        }}
                       />
                     </div>
-                    <span>{formatTime(duration)}</span>
+                    <span>{formatTime(videoDuration)}</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20"
                       onClick={handleMuteToggle}
                     >
-                      {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                      {isMuted ? (
+                        <VolumeX className="h-4 w-4" />
+                      ) : (
+                        <Volume2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -286,7 +333,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             )}
           </div>
 
-          {/* Description */}
+          {/* Caption */}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
             <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Caption</h3>
             {result.description ? (
@@ -301,62 +348,56 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             )}
           </div>
 
-          {/* Download Buttons with Progress */}
+          {/* Download Buttons */}
           <div className="space-y-3">
             {isVideo && result.videos && result.videos.length > 0 ? (
               <div className="space-y-2">
-                {/* Primary video - MP4 [1] */}
                 {renderDownloadButton(
                   "UNDUH MP4 [1]",
                   result.videos[0],
-                  'video',
-                  'video1',
+                  "video",
+                  "video1",
                   "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
-                  <Download className="mr-2 h-5 w-5" />
+                  <Download className="mr-2 h-5 w-5" />,
                 )}
 
-                {/* HD video from snapcdn.app (if available) */}
-                {result.videoHdUrl && renderDownloadButton(
-                  "UNDUH MP4 [2]",
-                  result.videoHdUrl,
-                  'video',
-                  'videoHd',
-                  "bg-gradient-to-r from-red-600 to-pink-500 hover:from-red-700 hover:to-pink-600",
-                  <Download className="mr-2 h-5 w-5" />
-                )}
+                {result.videoHdUrl &&
+                  renderDownloadButton(
+                    "UNDUH MP4 [2]",
+                    result.videoHdUrl,
+                    "video",
+                    "videoHd",
+                    "bg-gradient-to-r from-red-600 to-pink-500 hover:from-red-700 hover:to-pink-600",
+                    <Download className="mr-2 h-5 w-5" />,
+                  )}
 
-                {/* Secondary video - MP4 [2] (if available) */}
-                {result.videos.length > 1 && renderDownloadButton(
-                  "UNDUH MP4 HD",
-                  result.videos[1],
-                  'video',
-                  'video2',
-                  "bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600",
-                  <Download className="mr-2 h-5 w-5" />
-                )}
+                {result.videos.length > 1 &&
+                  renderDownloadButton(
+                    "UNDUH MP4 HD",
+                    result.videos[1],
+                    "video",
+                    "video2",
+                    "bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600",
+                    <Download className="mr-2 h-5 w-5" />,
+                  )}
               </div>
             ) : isVideo ? (
               renderDownloadButton(
                 "UNDUH MP4",
-                result.videoUrl || '',
-                'video',
-                'video1',
+                result.videoUrl ?? "",
+                "video",
+                "video1",
                 "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
-                <Download className="mr-2 h-5 w-5" />
+                <Download className="mr-2 h-5 w-5" />,
               )
             ) : (
               <Button
                 size="lg"
-                onClick={() => {
-                  // For images, download all
-                  result.imageUrls?.forEach((url, index) => {
-                    handleDownload(url, 'image', 'image', index)
-                  })
-                }}
+                onClick={handleDownloadAllImages}
                 disabled={!!downloading}
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-semibold py-4"
               >
-                {downloading === 'image' ? (
+                {downloading === "image" ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Downloading...
@@ -364,20 +405,21 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                 ) : (
                   <>
                     <Download className="mr-2 h-5 w-5" />
-                    UNDUH GAMBAR ({result.imageUrls?.length || 0})
+                    UNDUH GAMBAR ({result.imageUrls?.length ?? 0})
                   </>
                 )}
               </Button>
             )}
 
-            {result.audioUrl && renderDownloadButton(
-              "UNDUH MP3",
-              result.audioUrl,
-              'audio',
-              'audio',
-              "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600",
-              <Music className="mr-2 h-5 w-5" />
-            )}
+            {result.audioUrl &&
+              renderDownloadButton(
+                "UNDUH MP3",
+                result.audioUrl,
+                "audio",
+                "audio",
+                "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600",
+                <Music className="mr-2 h-5 w-5" />,
+              )}
           </div>
 
           {/* Additional Info */}
@@ -396,9 +438,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             {isVideo && result.duration && (
               <div>Duration: {formatResultDuration(result.duration)}</div>
             )}
-            {result.size && (
-              <div>Size: {result.size}</div>
-            )}
+            {result.size && <div>Size: {result.size}</div>}
           </div>
         </CardContent>
       </Card>

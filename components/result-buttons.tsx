@@ -4,6 +4,9 @@ import { useState } from "react"
 import { ArrowLeft, Copy, Check, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
+import { downloadWithProgress, generateFilename } from "@/lib/download-utils"
+
+// ============== Types ==============
 
 interface ResultButtonsProps {
   /** URL to the video file (if the post is a video). */
@@ -16,9 +19,13 @@ interface ResultButtonsProps {
   imageUrls?: string[]
   /** Content type of the result: "video" or "image". */
   type?: string
+  /** TikTok creator username (used for filename generation). */
+  creator?: string
   /** Callback when the user wants to download another item. */
   onDownloadAnother: () => void
 }
+
+// ============== Component ==============
 
 export function ResultButtons({
   videoUrl,
@@ -26,47 +33,50 @@ export function ResultButtons({
   audioUrl,
   imageUrls,
   type,
+  creator,
   onDownloadAnother,
 }: ResultButtonsProps) {
   const { toast } = useToast()
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
 
-  const handleDownload = (url?: string, label = "file") => {
+  // Infer content type from props when `type` is not explicitly provided
+  const contentType = type ?? (imageUrls && imageUrls.length > 0 ? "image" : "video")
+  const isImage = contentType === "image"
+
+  // ---- Download helpers ----
+
+  const handleDownloadVideo = (url?: string, label = "video") => {
     if (!url) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `No ${label} URL available`,
-      })
+      toast({ variant: "destructive", title: "Error", description: `No ${label} URL available` })
       return
     }
-    try {
-      window.open(url, "_blank")
-    } catch (error) {
-      console.error("Error opening URL:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not open download URL",
-      })
-    }
+    const filename = generateFilename("video", creator)
+    downloadWithProgress(url, filename).catch(() => {
+      toast({ variant: "destructive", title: "Error", description: "Could not download file" })
+    })
   }
 
   const handleDownloadImages = () => {
     if (!imageUrls || imageUrls.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `No images available to download`,
-      })
+      toast({ variant: "destructive", title: "Error", description: "No images available to download" })
       return
     }
-    imageUrls.forEach((img) => {
-      try {
-        window.open(img, "_blank")
-      } catch (error) {
-        console.error("Error opening image URL:", error)
-      }
+    imageUrls.forEach((imgUrl, index) => {
+      const filename = generateFilename("image", creator, index)
+      downloadWithProgress(imgUrl, filename).catch((err) =>
+        console.error("Failed to download image:", err),
+      )
+    })
+  }
+
+  const handleDownloadAudio = () => {
+    if (!audioUrl) {
+      toast({ variant: "destructive", title: "Error", description: "No audio URL available" })
+      return
+    }
+    const filename = generateFilename("audio", creator)
+    downloadWithProgress(audioUrl, filename).catch(() => {
+      toast({ variant: "destructive", title: "Error", description: "Could not download audio" })
     })
   }
 
@@ -87,26 +97,19 @@ export function ResultButtons({
         description: `${label.charAt(0).toUpperCase() + label.slice(1)} link copied to clipboard`,
       })
       setTimeout(() => setCopiedUrl(null), 2000)
-    } catch (error) {
-      console.error("Failed to copy:", error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to copy link to clipboard",
-      })
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to copy link to clipboard" })
     }
   }
 
+  // The URL used for the copy button
+  const primaryUrl = isImage ? imageUrls?.[0] : videoUrl
+
+  // ---- JSX ----
+
   return (
     <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
-      {/* Render download buttons based on the type of content */}
-      {/* Determine content type on the fly in case the caller passes undefined.  If `type` is undefined we infer it
-          from the presence of image URLs. */}
-      {(() => {
-        const contentType = type ?? (imageUrls && imageUrls.length > 0 ? "image" : "video")
-        return contentType === "image"
-      })() ? (
-
+      {isImage ? (
         <Button
           size="lg"
           className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
@@ -117,20 +120,18 @@ export function ResultButtons({
         </Button>
       ) : (
         <>
-          {/* Standard MP4 download */}
           <Button
             size="lg"
             className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
-            onClick={() => handleDownload(videoUrl, "video")}
+            onClick={() => handleDownloadVideo(videoUrl, "video")}
           >
             <Download className="h-5 w-5" />
             UNDUH MP4
           </Button>
-          {/* HD MP4 download – fall back to the standard URL if HD is unavailable */}
           <Button
             size="lg"
             className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
-            onClick={() => handleDownload(videoHdUrl || videoUrl, "video (HD)")}
+            onClick={() => handleDownloadVideo(videoHdUrl ?? videoUrl, "video (HD)")}
           >
             <Download className="h-5 w-5" />
             UNDUH MP4 [HD]
@@ -138,12 +139,11 @@ export function ResultButtons({
         </>
       )}
 
-      {/* Audio download button (only show if available) */}
       {audioUrl && (
         <Button
           size="lg"
           className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
-          onClick={() => handleDownload(audioUrl, "audio")}
+          onClick={handleDownloadAudio}
         >
           <Download className="h-5 w-5" />
           UNDUH MP3
@@ -157,35 +157,20 @@ export function ResultButtons({
           onClick={onDownloadAnother}
         >
           <ArrowLeft className="h-5 w-5" />
-          {(() => {
-            const contentType = type ?? (imageUrls && imageUrls.length > 0 ? "image" : "video")
-            return contentType === "image" ? "UNDUH TIKTOK LAIN" : "UNDUH VIDEO LAIN"
-          })()}
+          {isImage ? "UNDUH TIKTOK LAIN" : "UNDUH VIDEO LAIN"}
         </Button>
 
         <Button
           size="lg"
           variant="outline"
           className="bg-gray-800 hover:bg-gray-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 w-12"
-          onClick={() => {
-            const firstUrl =
-              type === "image"
-                ? imageUrls && imageUrls.length > 0
-                  ? imageUrls[0]
-                  : undefined
-                : videoUrl
-            copyToClipboard(firstUrl, type === "image" ? "image" : "video")
-          }}
+          onClick={() => copyToClipboard(primaryUrl, isImage ? "image" : "video")}
         >
-          {(() => {
-            const firstUrl =
-              type === "image"
-                ? imageUrls && imageUrls.length > 0
-                  ? imageUrls[0]
-                  : undefined
-                : videoUrl
-            return copiedUrl === firstUrl ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />
-          })()}
+          {copiedUrl === primaryUrl ? (
+            <Check className="h-5 w-5" />
+          ) : (
+            <Copy className="h-5 w-5" />
+          )}
         </Button>
       </div>
     </div>
