@@ -438,6 +438,7 @@ export async function POST(req: Request) {
     images,
     description,
     creator,
+    thumbnail: result.thumbnail || undefined,
   }
 
   if (!isPhoto) {

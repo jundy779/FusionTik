@@ -39,6 +39,7 @@ interface TikTokApiResponse {
   description?: string
   creator?: string
   duration?: string
+  thumbnail?: string
   error?: string
 }
 
@@ -55,6 +56,7 @@ interface TikTokResult {
   description?: string
   creator?: string
   duration?: string
+  thumbnail?: string
 }
 
 // ============== FAQ Schema (structured data) ==============
@@ -176,6 +178,7 @@ export default function TikTokDownloader() {
         description: data.description,
         creator: data.creator,
         duration: data.duration,
+        thumbnail: data.thumbnail,
       }
 
       setCurrentResult(newResult)

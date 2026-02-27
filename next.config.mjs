@@ -51,9 +51,9 @@ const nextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com;
               style-src 'self' 'unsafe-inline';
-              img-src 'self' blob: data: https://*.tiktokcdn.com https://*.tiktokv.com https://*.tiktok.com https://p16-sign-sg.tiktokcdn.com https://*.akamaized.net;
-              media-src 'self' blob: https://*.tiktokcdn.com https://*.tiktokv.com https://*.snapcdn.app https://*.akamaized.net;
-              connect-src 'self' https://*.supabase.co https://*.tiksave.io https://*.tiktokcdn.com https://*.tiktokv.com https://*.snapcdn.app https://*.akamaized.net;
+              img-src 'self' blob: data: https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.tiktokv.com https://*.tiktok.com https://p16-sign-sg.tiktokcdn.com https://*.akamaized.net https://*.alisg.com https://*.alicdn.com;
+              media-src 'self' blob: https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.tiktokv.com https://*.snapcdn.app https://*.akamaized.net;
+              connect-src 'self' https://*.supabase.co https://*.tiksave.io https://*.tiktokcdn.com https://*.tiktokcdn-us.com https://*.tiktokv.com https://*.snapcdn.app https://*.akamaized.net;
               font-src 'self' data:;
               frame-src 'self' https://www.tiktok.com;
               object-src 'none';

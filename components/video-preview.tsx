@@ -266,6 +266,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                 <video
                   ref={videoRef}
                   src={mediaUrl}
+                  poster={result.thumbnail || undefined}
                   className="w-full h-auto max-h-96 object-contain"
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleTimeUpdate}
@@ -324,6 +325,18 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                   <img
                     src={result.imageUrls[0]}
                     alt="TikTok Image"
+                    className="max-h-96 object-contain"
+                    onError={(e) => {
+                      // Fallback to thumbnail if image fails to load
+                      if (result.thumbnail) {
+                        (e.target as HTMLImageElement).src = result.thumbnail
+                      }
+                    }}
+                  />
+                ) : result.thumbnail ? (
+                  <img
+                    src={result.thumbnail}
+                    alt="TikTok Thumbnail"
                     className="max-h-96 object-contain"
                   />
                 ) : (
