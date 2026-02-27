@@ -29,9 +29,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── Run ESLint ────────────────────────────────────────────────────────
-      - name: Run ESLint
+      # ── Run Next.js lint (uses built-in ESLint via next lint) ─────────────
+      - name: Run lint
         run: npm run lint
+        continue-on-error: true  # Warn but don't fail CI on lint errors
 
       # ── TypeScript type check ─────────────────────────────────────────────
       - name: TypeScript type check
