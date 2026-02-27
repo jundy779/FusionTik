@@ -31,6 +31,18 @@ _⚡ FusionTik_
 </p>
 
 <p align="center">
+  <a href="https://github.com/jundy779/FusionTik/actions/workflows/ci.yml">
+    <img src="https://github.com/jundy779/FusionTik/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
+  </a>
+  <a href="https://github.com/jundy779/FusionTik/actions/workflows/docker.yml">
+    <img src="https://github.com/jundy779/FusionTik/actions/workflows/docker.yml/badge.svg" alt="Docker Build" />
+  </a>
+  <a href="https://github.com/jundy779/FusionTik/actions/workflows/codeql.yml">
+    <img src="https://github.com/jundy779/FusionTik/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" />
+  </a>
+</p>
+
+<p align="center">
   <a href="https://fusiontik.vercel.app">
     <img src="https://img.shields.io/badge/🌐%20Live%20Demo-fusiontik.vercel.app-blue?style=for-the-badge" alt="Live Demo" />
   </a>
@@ -927,6 +939,10 @@ _💖 Acknowledgements_
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 <div align="center">
+
+<!-- RepoBeats Analytics -->
+<p><strong>📊 Repository Activity</strong></p>
+<img src="https://repobeats.axiom.co/api/embed/fusiontik.svg" width="700" alt="Repobeats Analytics"/>
 
 <!-- Star History -->
 <p><strong>🌟 Star History</strong></p>

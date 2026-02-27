@@ -1,0 +1,19 @@
+# GitHub Sponsors and other funding options for FusionTik
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# GitHub Sponsors (if you have a GitHub Sponsors account)
+# github: jundy779
+
+# Ko-fi
+# ko_fi: fusionify
+
+# Trakteer (Indonesian platform)
+# custom: ["https://trakteer.id/fusionify"]
+
+# Saweria (Indonesian platform)
+# custom: ["https://saweria.co/fusionify"]
+
+# Uncomment and fill in the platforms you use
+# For now, using Linktree as the main contact point
+custom:
+  - https://linktr.ee/fusionifytempest
