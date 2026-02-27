@@ -56,7 +56,11 @@ interface TikWMData {
     }
     cover?: string
     origin_cover?: string
+    /** No-watermark video (standard quality) */
     play?: string
+    /** No-watermark video (HD quality) */
+    hdplay?: string
+    /** Video with watermark */
     wmplay?: string
     music?: string
     duration?: number
@@ -247,10 +251,14 @@ async function fetchFromTikWM(url: string): Promise<TikTokData> {
         : ""
 
   const videos: string[] = []
-  // Prefer no-watermark (play), fallback to watermark (wmplay)
-  if (typeof data.play === "string" && data.play.length > 0) {
+  // Priority: hdplay (HD no-watermark) → play (SD no-watermark) → wmplay (watermark)
+  if (typeof data.hdplay === "string" && data.hdplay.length > 0) {
+    videos.push(data.hdplay)
+  }
+  if (typeof data.play === "string" && data.play.length > 0 && data.play !== data.hdplay) {
     videos.push(data.play)
-  } else if (typeof data.wmplay === "string" && data.wmplay.length > 0) {
+  }
+  if (videos.length === 0 && typeof data.wmplay === "string" && data.wmplay.length > 0) {
     videos.push(data.wmplay)
   }
 
