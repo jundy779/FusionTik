@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-**fusiontik.official@gmail.com**.
+**fusionify_digital@vk.com**.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

@@ -20,7 +20,7 @@ If you discover a security vulnerability in FusionTik, please report it responsi
 
 ### 📧 Contact
 
-**Email:** fusiontik.official@gmail.com
+**Email:** fusionify_digital@vk.com
 
 **Subject:** `[SECURITY] Brief description of the vulnerability`
 
