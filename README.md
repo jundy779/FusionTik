@@ -26,7 +26,7 @@ _⚡ FusionTik_
     <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
   </a>
   <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License" />
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="Apache-2.0 License" />
   </a>
 </p>
 
