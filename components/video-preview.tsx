@@ -1,12 +1,13 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Play, Pause, Volume2, VolumeX, Download, Music, Loader2 } from "lucide-react"
+import { Play, Pause, Volume2, VolumeX, Download, Music, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
+import useEmblaCarousel from "embla-carousel-react"
 import {
   downloadWithProgress,
   generateFilename,
@@ -112,8 +113,38 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
   const [downloading, setDownloading] = useState<DownloadType>(null)
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null)
 
+  // Carousel for Photo Mode
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true })
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) {
+      emblaApi.scrollPrev()
+      setCurrentSlide(emblaApi.selectedScrollSnap())
+    }
+  }, [emblaApi])
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) {
+      emblaApi.scrollNext()
+      setCurrentSlide(emblaApi.selectedScrollSnap())
+    }
+  }, [emblaApi])
+
+  const onSelect = useCallback(() => {
+    if (emblaApi) setCurrentSlide(emblaApi.selectedScrollSnap())
+  }, [emblaApi])
+
+  // Register carousel select event
+  useEffect(() => {
+    if (!emblaApi) return
+    emblaApi.on("select", onSelect)
+    return () => { emblaApi.off("select", onSelect) }
+  }, [emblaApi, onSelect])
+
   const isVideo = result.type === "video"
   const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
+  const imageCount = result.imageUrls?.length ?? 0
 
   // ---- Video controls ----
 
@@ -320,27 +351,89 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                 </div>
               </div>
             ) : (
-              <div className="aspect-video bg-gray-100 flex items-center justify-center">
+              <div className="relative bg-gray-100">
                 {result.imageUrls && result.imageUrls.length > 0 ? (
-                  <img
-                    src={result.imageUrls[0]}
-                    alt="TikTok Image"
-                    className="max-h-96 object-contain"
-                    onError={(e) => {
-                      // Fallback to thumbnail if image fails to load
-                      if (result.thumbnail) {
-                        (e.target as HTMLImageElement).src = result.thumbnail
-                      }
-                    }}
-                  />
+                  <>
+                    {/* Embla Carousel */}
+                    <div className="overflow-hidden" ref={emblaRef}>
+                      <div className="flex">
+                        {result.imageUrls.map((imgUrl, index) => (
+                          <div
+                            key={index}
+                            className="flex-none w-full flex items-center justify-center min-h-64 max-h-96"
+                          >
+                            <img
+                              src={imgUrl}
+                              alt={`TikTok Image ${index + 1}`}
+                              className="max-h-96 w-full object-contain"
+                              onError={(e) => {
+                                if (result.thumbnail) {
+                                  (e.target as HTMLImageElement).src = result.thumbnail
+                                }
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Navigation buttons (only show if more than 1 image) */}
+                    {imageCount > 1 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
+                          onClick={scrollPrev}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
+                          onClick={scrollNext}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        {/* Slide indicator */}
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                          {result.imageUrls.map((_, index) => (
+                            <button
+                              key={index}
+                              className={`w-2 h-2 rounded-full transition-all ${
+                                index === currentSlide
+                                  ? "bg-white scale-125"
+                                  : "bg-white/50"
+                              }`}
+                              onClick={() => {
+                                emblaApi?.scrollTo(index)
+                                setCurrentSlide(index)
+                              }}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Counter */}
+                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                          {currentSlide + 1} / {imageCount}
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : result.thumbnail ? (
-                  <img
-                    src={result.thumbnail}
-                    alt="TikTok Thumbnail"
-                    className="max-h-96 object-contain"
-                  />
+                  <div className="flex items-center justify-center min-h-64">
+                    <img
+                      src={result.thumbnail}
+                      alt="TikTok Thumbnail"
+                      className="max-h-96 object-contain"
+                    />
+                  </div>
                 ) : (
-                  <div className="text-gray-500">No preview available</div>
+                  <div className="flex items-center justify-center min-h-64 text-gray-500">
+                    No preview available
+                  </div>
                 )}
               </div>
             )}
