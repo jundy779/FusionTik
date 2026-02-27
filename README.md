@@ -675,6 +675,55 @@ pm2 start "npm run start" --name fusiontik
 pm2 save && pm2 startup
 ```
 
+### Deploy dengan Docker
+
+Pull dan jalankan image dari GitHub Container Registry:
+
+```bash
+# Pull image terbaru
+docker pull ghcr.io/jundy779/fusiontik:latest
+
+# Jalankan container
+docker run -d \
+  --name fusiontik \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=your_supabase_url \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key \
+  -e TELEGRAM_BOT_TOKEN=your_telegram_token \
+  -e TELEGRAM_CHAT_ID=your_chat_id \
+  ghcr.io/jundy779/fusiontik:latest
+```
+
+Atau build sendiri dari source:
+
+```bash
+git clone https://github.com/jundy779/FusionTik.git
+cd FusionTik
+docker build -t fusiontik .
+docker run -d --name fusiontik -p 3000:3000 fusiontik
+```
+
+Dengan Docker Compose:
+
+```yaml
+# docker-compose.yml
+services:
+  fusiontik:
+    image: ghcr.io/jundy779/fusiontik:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    restart: unless-stopped
+```
+
+```bash
+docker compose up -d
+```
+
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
