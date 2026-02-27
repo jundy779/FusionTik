@@ -942,7 +942,7 @@ _💖 Acknowledgements_
 
 <!-- RepoBeats Analytics -->
 <p><strong>📊 Repository Activity</strong></p>
-<img src="https://repobeats.axiom.co/api/embed/fusiontik.svg" width="700" alt="Repobeats Analytics"/>
+<img src="https://repobeats.axiom.co/api/embed/b5e5a75d5f5aee6aeae345e1d08db9ab4127c649.svg" width="700" alt="Repobeats analytics image"/>
 
 <!-- Star History -->
 <p><strong>🌟 Star History</strong></p>
