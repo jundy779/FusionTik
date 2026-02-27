@@ -104,6 +104,192 @@ graph TD
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
+_🧱 Software Architecture_
+
+FusionTik menggunakan **Layered Architecture** dengan pemisahan yang jelas antara Presentation, Application, dan Infrastructure layer.
+
+### Layer Overview
+
+```mermaid
+graph TB
+    subgraph PRESENTATION["🖥️ Presentation Layer (Client-Side)"]
+        direction LR
+        P1[app/page.tsx<br/><sub>Main Page</sub>]
+        P2[components/video-preview.tsx<br/><sub>Download UI</sub>]
+        P3[components/result-card.tsx<br/><sub>History Card</sub>]
+        P4[components/stats-card.tsx<br/><sub>Stats Display</sub>]
+        P5[components/navbar.tsx<br/><sub>Navigation</sub>]
+    end
+
+    subgraph STATE["🔄 State Management Layer (React Hooks)"]
+        direction LR
+        S1[use-download-history<br/><sub>localStorage</sub>]
+        S2[use-download-stats<br/><sub>Personal Stats</sub>]
+        S3[use-global-stats<br/><sub>Global Counter</sub>]
+    end
+
+    subgraph APPLICATION["⚙️ Application Layer (Next.js API Routes)"]
+        direction LR
+        A1[/api/tiktok<br/><sub>Core Downloader</sub>]
+        A2[/api/global-stats<br/><sub>Counter API</sub>]
+    end
+
+    subgraph INFRASTRUCTURE["🏗️ Infrastructure Layer"]
+        direction LR
+        I1[lib/supabase.ts<br/><sub>DB Client</sub>]
+        I2[lib/download-utils.ts<br/><sub>Download Engine</sub>]
+        I3[lib/utils.ts<br/><sub>Utilities</sub>]
+    end
+
+    subgraph EXTERNAL["🌐 External Services"]
+        direction LR
+        E1[Zell API<br/><sub>Provider 1</sub>]
+        E2[Sanka API<br/><sub>Provider 2</sub>]
+        E3[Supabase DB<br/><sub>PostgreSQL</sub>]
+        E4[TikTok CDN<br/><sub>Media Files</sub>]
+        E5[Telegram API<br/><sub>Alerts</sub>]
+    end
+
+    PRESENTATION --> STATE
+    PRESENTATION --> APPLICATION
+    APPLICATION --> INFRASTRUCTURE
+    INFRASTRUCTURE --> EXTERNAL
+
+    style PRESENTATION fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    style STATE fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style APPLICATION fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style INFRASTRUCTURE fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style EXTERNAL fill:#efebe9,stroke:#795548,stroke-width:2px
+```
+
+### Component Interaction Diagram
+
+```mermaid
+graph LR
+    subgraph PAGE["app/page.tsx"]
+        FORM[Form Input]
+        RESULT[Result Display]
+        HIST[History Section]
+        STATS[Stats Section]
+    end
+
+    subgraph HOOKS["React Hooks"]
+        UDH[useDownloadHistory]
+        UDS[useDownloadStats]
+        UGS[useGlobalStats]
+    end
+
+    subgraph COMPONENTS["Components"]
+        VP[VideoPreview]
+        RC[ResultCard]
+        SC[StatsCard]
+        RB[ResultButtons]
+    end
+
+    subgraph API["API Routes"]
+        TK[/api/tiktok]
+        GS[/api/global-stats]
+    end
+
+    subgraph LIB["Libraries"]
+        DU[download-utils]
+        SB[supabase]
+    end
+
+    FORM -->|submit| TK
+    TK -->|response| RESULT
+    RESULT --> VP
+    VP --> DU
+    HIST --> RC
+    STATS --> SC
+    PAGE --> UDH
+    PAGE --> UDS
+    PAGE --> UGS
+    UDH -->|localStorage| UDS
+    UGS -->|fetch| GS
+    GS --> SB
+    PAGE -->|increment| GS
+
+    style PAGE fill:#e3f2fd,stroke:#2196f3
+    style HOOKS fill:#e8f5e9,stroke:#4caf50
+    style COMPONENTS fill:#fff3e0,stroke:#ff9800
+    style API fill:#f3e5f5,stroke:#9c27b0
+    style LIB fill:#efebe9,stroke:#795548
+```
+
+### Data Flow Diagram
+
+```mermaid
+flowchart LR
+    subgraph INPUT["📥 Input"]
+        URL[TikTok URL]
+    end
+
+    subgraph VALIDATION["🔍 Validation"]
+        REGEX[Regex Check<br/>tiktok.com / vt.tiktok.com]
+    end
+
+    subgraph FETCH["🔌 Data Fetching"]
+        Z[Zell Provider]
+        S[Sanka Provider]
+        PARSE[Parse & Normalize<br/>title, creator, videos,<br/>audio, images, duration]
+    end
+
+    subgraph RESPONSE["📤 Response"]
+        VIDEO[type: video<br/>video, videoHd, music]
+        IMAGE[type: image<br/>images, music]
+    end
+
+    subgraph STORAGE["💾 Storage"]
+        LS[localStorage<br/>history + stats]
+        DB[(Supabase<br/>global_stats)]
+    end
+
+    subgraph DOWNLOAD["⬇️ Download"]
+        BLOB[Blob + Progress]
+        OPEN[window.open fallback]
+    end
+
+    URL --> REGEX
+    REGEX -->|valid| Z
+    REGEX -->|invalid| ERR[❌ Error 400]
+    Z -->|success| PARSE
+    Z -->|fail| S
+    S -->|success| PARSE
+    S -->|fail| ALERT[🔔 Alert System]
+    PARSE --> VIDEO
+    PARSE --> IMAGE
+    VIDEO --> LS
+    IMAGE --> LS
+    VIDEO --> DB
+    IMAGE --> DB
+    VIDEO --> BLOB
+    IMAGE --> BLOB
+    BLOB -->|CORS ok| BLOB
+    BLOB -->|CORS fail| OPEN
+
+    style INPUT fill:#e3f2fd,stroke:#2196f3,color:#0d47a1
+    style VALIDATION fill:#fff3e0,stroke:#ff9800,color:#e65100
+    style FETCH fill:#f3e5f5,stroke:#9c27b0,color:#4a148c
+    style RESPONSE fill:#e8f5e9,stroke:#4caf50,color:#1b5e20
+    style STORAGE fill:#efebe9,stroke:#795548,color:#3e2723
+    style DOWNLOAD fill:#e0f2f1,stroke:#00695c,color:#004d40
+```
+
+### Design Patterns yang Digunakan
+
+| Pattern | Implementasi | File |
+|---------|-------------|------|
+| **Provider Pattern** | Fallback chain Zell → Sanka | `app/api/tiktok/route.ts` |
+| **Repository Pattern** | Supabase ↔ File JSON fallback | `app/api/global-stats/route.ts` |
+| **Custom Hook Pattern** | State management terpisah per concern | `hooks/` |
+| **Compound Component** | VideoPreview + download buttons | `components/video-preview.tsx` |
+| **Strategy Pattern** | Download: Blob progress vs window.open | `lib/download-utils.ts` |
+| **Observer Pattern** | useRef untuk avoid stale closure | `hooks/use-download-history.ts` |
+
+<!-- Divider -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+
 _✨ Key Features_
 
 <table>
