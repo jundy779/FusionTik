@@ -45,6 +45,25 @@ interface SankaResponse {
   result?: SankaResult
 }
 
+interface TikWMData {
+  code: number
+  msg?: string
+  data?: {
+    title?: string
+    author?: {
+      nickname?: string
+      unique_id?: string
+    }
+    cover?: string
+    origin_cover?: string
+    play?: string
+    wmplay?: string
+    music?: string
+    duration?: number
+    images?: unknown[]
+  }
+}
+
 interface TikTokData {
   title: string
   creator: string
@@ -179,6 +198,73 @@ async function fetchFromSanka(url: string): Promise<TikTokData> {
   return { title, creator, thumbnail, videos, audio, slide, duration }
 }
 
+// ============== Provider: TikWM ==============
+
+async function fetchFromTikWM(url: string): Promise<TikTokData> {
+  const baseUrl = process.env.TIKWM_API_URL || "https://tikwm.com/api/"
+
+  const body = new URLSearchParams()
+  body.set("url", url)
+  body.set("hd", "1")
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      Cookie: "current_language=en",
+      "User-Agent":
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
+    },
+    body: body.toString(),
+  })
+
+  if (!res.ok) {
+    throw new Error(`TikWM API returned ${res.status}: ${res.statusText}`)
+  }
+
+  const json = (await res.json()) as TikWMData
+
+  if (!json || json.code !== 0 || !json.data) {
+    throw new Error(`Unexpected response from TikWM API: ${json.msg ?? "unknown error"}`)
+  }
+
+  const data = json.data
+
+  const title = typeof data.title === "string" ? data.title : ""
+
+  const creator =
+    typeof data.author?.unique_id === "string"
+      ? data.author.unique_id
+      : typeof data.author?.nickname === "string"
+        ? data.author.nickname
+        : ""
+
+  const thumbnail =
+    typeof data.origin_cover === "string" && data.origin_cover.length > 0
+      ? data.origin_cover
+      : typeof data.cover === "string"
+        ? data.cover
+        : ""
+
+  const videos: string[] = []
+  // Prefer no-watermark (play), fallback to watermark (wmplay)
+  if (typeof data.play === "string" && data.play.length > 0) {
+    videos.push(data.play)
+  } else if (typeof data.wmplay === "string" && data.wmplay.length > 0) {
+    videos.push(data.wmplay)
+  }
+
+  const audio = typeof data.music === "string" ? data.music : ""
+
+  const slide: string[] = Array.isArray(data.images)
+    ? data.images.filter((item): item is string => typeof item === "string")
+    : []
+
+  const duration = typeof data.duration === "number" ? String(data.duration) : ""
+
+  return { title, creator, thumbnail, videos, audio, slide, duration }
+}
+
 // ============== Alert / Notification ==============
 
 async function notifyProviderFailure(url: string, error: string): Promise<void> {
@@ -281,6 +367,12 @@ async function fetchTikTok(url: string): Promise<TikTokData> {
 
   try {
     return await fetchFromSanka(url)
+  } catch {
+    // Sanka failed — try TikWM as Provider 3
+  }
+
+  try {
+    return await fetchFromTikWM(url)
   } catch {
     if (firstError instanceof Error) throw firstError
     throw new Error("All providers failed")
