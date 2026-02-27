@@ -62,23 +62,23 @@ _🏗️ Architecture Overview_
 
 ```mermaid
 graph TD
-    A[User Browser<br/><sub>Paste TikTok URL</sub>] -->|Submit Form| B[Next.js Frontend<br/><sub>app/page.tsx</sub>]
-    B -->|POST /api/tiktok| C[API Route Handler<br/><sub>Validate URL</sub>]
-    C -->|Try Provider 1| D[Zell API<br/><sub>apizell.web.id</sub>]
-    C -->|Fallback| E[Sanka API<br/><sub>sankavollerei.com</sub>]
-    D -->|Success| F[Parse Response<br/><sub>video/audio/images</sub>]
+    A["User Browser - Paste TikTok URL"] -->|Submit Form| B["Next.js Frontend - app/page.tsx"]
+    B -->|POST /api/tiktok| C["API Route Handler - Validate URL"]
+    C -->|Try Provider 1| D["Zell API - apizell.web.id"]
+    C -->|Fallback| E["Sanka API - sankavollerei.com"]
+    D -->|Success| F["Parse Response - video, audio, images"]
     E -->|Success| F
     D -->|Fail| E
-    E -->|All Fail| G[notifyProviderFailure<br/><sub>Alert System</sub>]
-    G --> H[Telegram Bot<br/><sub>Instant Alert</sub>]
-    G --> I[Email SMTP<br/><sub>Nodemailer</sub>]
-    G --> J[Webhook POST<br/><sub>Custom Endpoint</sub>]
+    E -->|All Fail| G["notifyProviderFailure - Alert System"]
+    G --> H["Telegram Bot - Instant Alert"]
+    G --> I["Email SMTP - Nodemailer"]
+    G --> J["Webhook POST - Custom Endpoint"]
     F -->|JSON Response| B
-    B -->|Show VideoPreview| K[Download UI<br/><sub>Progress Bar</sub>]
-    K -->|downloadWithProgress| L[TikTok CDN<br/><sub>Direct Download</sub>]
-    B -->|POST /api/global-stats| M[Global Counter<br/><sub>Increment</sub>]
-    M -->|Atomic RPC| N[(Supabase DB<br/><sub>global_stats</sub>)]
-    M -->|Fallback| O[(JSON File<br/><sub>data/global-stats.json</sub>)]
+    B -->|Show VideoPreview| K["Download UI - Progress Bar"]
+    K -->|downloadWithProgress| L["TikTok CDN - Direct Download"]
+    B -->|POST /api/global-stats| M["Global Counter - Increment"]
+    M -->|Atomic RPC| N[("Supabase DB - global_stats")]
+    M -->|Fallback| O[("JSON File - global-stats.json")]
 
     style A fill:#e3f2fd,stroke:#2196f3,stroke-width:3px,color:#0d47a1
     style B fill:#e8f5e9,stroke:#4caf50,stroke-width:3px,color:#1b5e20
@@ -95,10 +95,6 @@ graph TD
     style M fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#424242
     style N fill:#d7ccc8,stroke:#5d4037,stroke-width:2px,color:#3e2723
     style O fill:#d7ccc8,stroke:#5d4037,stroke-width:2px,color:#3e2723
-
-    linkStyle default stroke:#666,stroke-width:2px
-    linkStyle 0 stroke:#2196f3,stroke-width:3px
-    linkStyle 12 stroke:#4caf50,stroke-width:3px
 ```
 
 <!-- Divider -->
@@ -112,42 +108,37 @@ FusionTik menggunakan **Layered Architecture** dengan pemisahan yang jelas antar
 
 ```mermaid
 graph TB
-    subgraph PRESENTATION["🖥️ Presentation Layer (Client-Side)"]
-        direction LR
-        P1[app/page.tsx<br/><sub>Main Page</sub>]
-        P2[components/video-preview.tsx<br/><sub>Download UI</sub>]
-        P3[components/result-card.tsx<br/><sub>History Card</sub>]
-        P4[components/stats-card.tsx<br/><sub>Stats Display</sub>]
-        P5[components/navbar.tsx<br/><sub>Navigation</sub>]
+    subgraph PRESENTATION["Presentation Layer - Client Side"]
+        P1["app/page.tsx - Main Page"]
+        P2["video-preview.tsx - Download UI"]
+        P3["result-card.tsx - History Card"]
+        P4["stats-card.tsx - Stats Display"]
+        P5["navbar.tsx - Navigation"]
     end
 
-    subgraph STATE["🔄 State Management Layer (React Hooks)"]
-        direction LR
-        S1[use-download-history<br/><sub>localStorage</sub>]
-        S2[use-download-stats<br/><sub>Personal Stats</sub>]
-        S3[use-global-stats<br/><sub>Global Counter</sub>]
+    subgraph STATE["State Management Layer - React Hooks"]
+        S1["use-download-history - localStorage"]
+        S2["use-download-stats - Personal Stats"]
+        S3["use-global-stats - Global Counter"]
     end
 
-    subgraph APPLICATION["⚙️ Application Layer (Next.js API Routes)"]
-        direction LR
-        A1[/api/tiktok<br/><sub>Core Downloader</sub>]
-        A2[/api/global-stats<br/><sub>Counter API</sub>]
+    subgraph APPLICATION["Application Layer - Next.js API Routes"]
+        A1["POST /api/tiktok - Core Downloader"]
+        A2["GET/POST /api/global-stats - Counter API"]
     end
 
-    subgraph INFRASTRUCTURE["🏗️ Infrastructure Layer"]
-        direction LR
-        I1[lib/supabase.ts<br/><sub>DB Client</sub>]
-        I2[lib/download-utils.ts<br/><sub>Download Engine</sub>]
-        I3[lib/utils.ts<br/><sub>Utilities</sub>]
+    subgraph INFRASTRUCTURE["Infrastructure Layer"]
+        I1["lib/supabase.ts - DB Client"]
+        I2["lib/download-utils.ts - Download Engine"]
+        I3["lib/utils.ts - Utilities"]
     end
 
-    subgraph EXTERNAL["🌐 External Services"]
-        direction LR
-        E1[Zell API<br/><sub>Provider 1</sub>]
-        E2[Sanka API<br/><sub>Provider 2</sub>]
-        E3[Supabase DB<br/><sub>PostgreSQL</sub>]
-        E4[TikTok CDN<br/><sub>Media Files</sub>]
-        E5[Telegram API<br/><sub>Alerts</sub>]
+    subgraph EXTERNAL["External Services"]
+        E1["Zell API - Provider 1"]
+        E2["Sanka API - Provider 2"]
+        E3["Supabase DB - PostgreSQL"]
+        E4["TikTok CDN - Media Files"]
+        E5["Telegram API - Alerts"]
     end
 
     PRESENTATION --> STATE
@@ -167,33 +158,32 @@ graph TB
 ```mermaid
 graph LR
     subgraph PAGE["app/page.tsx"]
-        FORM[Form Input]
-        RESULT[Result Display]
-        HIST[History Section]
-        STATS[Stats Section]
+        FORM["Form Input"]
+        RESULT["Result Display"]
+        HIST["History Section"]
+        STATS["Stats Section"]
     end
 
     subgraph HOOKS["React Hooks"]
-        UDH[useDownloadHistory]
-        UDS[useDownloadStats]
-        UGS[useGlobalStats]
+        UDH["useDownloadHistory"]
+        UDS["useDownloadStats"]
+        UGS["useGlobalStats"]
     end
 
     subgraph COMPONENTS["Components"]
-        VP[VideoPreview]
-        RC[ResultCard]
-        SC[StatsCard]
-        RB[ResultButtons]
+        VP["VideoPreview"]
+        RC["ResultCard"]
+        SC["StatsCard"]
     end
 
     subgraph API["API Routes"]
-        TK[/api/tiktok]
-        GS[/api/global-stats]
+        TK["POST /api/tiktok"]
+        GS["GET/POST /api/global-stats"]
     end
 
     subgraph LIB["Libraries"]
-        DU[download-utils]
-        SB[supabase]
+        DU["download-utils"]
+        SB["supabase client"]
     end
 
     FORM -->|submit| TK
@@ -221,42 +211,42 @@ graph LR
 
 ```mermaid
 flowchart LR
-    subgraph INPUT["📥 Input"]
-        URL[TikTok URL]
+    subgraph INPUT["Input"]
+        URL["TikTok URL"]
     end
 
-    subgraph VALIDATION["🔍 Validation"]
-        REGEX[Regex Check<br/>tiktok.com / vt.tiktok.com]
+    subgraph VALIDATION["Validation"]
+        REGEX["Regex Check - tiktok.com"]
     end
 
-    subgraph FETCH["🔌 Data Fetching"]
-        Z[Zell Provider]
-        S[Sanka Provider]
-        PARSE[Parse & Normalize<br/>title, creator, videos,<br/>audio, images, duration]
+    subgraph FETCH["Data Fetching"]
+        Z["Zell Provider"]
+        S["Sanka Provider"]
+        PARSE["Parse and Normalize - title, creator, videos, audio, images"]
     end
 
-    subgraph RESPONSE["📤 Response"]
-        VIDEO[type: video<br/>video, videoHd, music]
-        IMAGE[type: image<br/>images, music]
+    subgraph RESPONSE["Response"]
+        VIDEO["Video Response - MP4 + Audio"]
+        IMAGE["Image Response - Photos + Audio"]
     end
 
-    subgraph STORAGE["💾 Storage"]
-        LS[localStorage<br/>history + stats]
-        DB[(Supabase<br/>global_stats)]
+    subgraph STORAGE["Storage"]
+        LS["localStorage - history and stats"]
+        DB[("Supabase - global_stats")]
     end
 
-    subgraph DOWNLOAD["⬇️ Download"]
-        BLOB[Blob + Progress]
-        OPEN[window.open fallback]
+    subgraph DOWNLOAD["Download"]
+        BLOB["Blob with Progress Bar"]
+        OPEN["window.open fallback"]
     end
 
     URL --> REGEX
     REGEX -->|valid| Z
-    REGEX -->|invalid| ERR[❌ Error 400]
+    REGEX -->|invalid| ERR["Error 400"]
     Z -->|success| PARSE
     Z -->|fail| S
     S -->|success| PARSE
-    S -->|fail| ALERT[🔔 Alert System]
+    S -->|fail| ALERT["Alert System - Telegram/Email"]
     PARSE --> VIDEO
     PARSE --> IMAGE
     VIDEO --> LS
@@ -407,47 +397,47 @@ _🔄 Message Flow_
 
 ```mermaid
 sequenceDiagram
-    participant U as 👤 User
-    participant FE as 🖥️ Frontend
-    participant API as ⚙️ API Server
-    participant Z as 🔌 Zell Provider
-    participant S as 🔌 Sanka Provider
-    participant DB as 🗄️ Supabase
-    participant TG as 📱 Telegram
+    participant U as User
+    participant FE as Frontend
+    participant API as API Server
+    participant Z as Zell Provider
+    participant S as Sanka Provider
+    participant DB as Supabase
+    participant TG as Telegram
 
     U->>FE: Paste TikTok URL
-    U->>FE: Click "Download"
-    FE->>API: POST /api/tiktok { url }
-    API->>API: Validate URL (regex)
-    API->>Z: GET ?url=tiktok_url
-    
+    U->>FE: Click Download
+    FE->>API: POST /api/tiktok
+    API->>API: Validate URL regex
+    API->>Z: GET url=tiktok_url
+
     alt Zell Success
-        Z-->>API: { video, music, images }
-        API-->>FE: { type, video, music }
+        Z-->>API: video, music, images
+        API-->>FE: type, video, music
     else Zell Failed
         Z-->>API: Error 5xx
-        API->>S: GET ?apikey=...&url=tiktok_url
+        API->>S: GET apikey and url
         alt Sanka Success
-            S-->>API: { play, music, images }
-            API-->>FE: { type, video, music }
+            S-->>API: play, music, images
+            API-->>FE: type, video, music
         else All Providers Failed
             S-->>API: Error
-            API->>TG: ⚠️ Alert notification
-            API-->>FE: { error: "Gangguan..." }
+            API->>TG: Alert notification
+            API-->>FE: error message
             FE-->>U: Show error message
         end
     end
 
     FE->>FE: Show VideoPreview component
-    U->>FE: Click "UNDUH MP4"
-    FE->>FE: downloadWithProgress(url, filename)
-    FE-->>U: Progress: 0% → 100%
-    FE-->>U: File saved ✓
+    U->>FE: Click UNDUH MP4
+    FE->>FE: downloadWithProgress
+    FE-->>U: Progress 0 to 100 percent
+    FE-->>U: File saved
 
     FE->>API: POST /api/global-stats
-    API->>DB: RPC increment_global_downloads()
+    API->>DB: RPC increment_global_downloads
     DB-->>API: new_total
-    API-->>FE: { totalDownloads: N }
+    API-->>FE: totalDownloads N
     FE-->>U: Update counter display
 ```
 
@@ -737,12 +727,12 @@ Ketika **semua provider API gagal**, FusionTik otomatis mengirim alert:
 
 ```mermaid
 flowchart LR
-    A[Provider Zell ❌] --> B[Provider Sanka ❌]
-    B --> C{notifyProviderFailure}
-    C --> D[📱 Telegram Bot]
-    C --> E[📧 Email SMTP]
-    C --> F[🔗 Webhook POST]
-    C --> G[🖥️ User Error UI]
+    A["Provider Zell - FAILED"] --> B["Provider Sanka - FAILED"]
+    B --> C{"notifyProviderFailure"}
+    C --> D["Telegram Bot - Instant Alert"]
+    C --> E["Email SMTP - Nodemailer"]
+    C --> F["Webhook POST - Custom Endpoint"]
+    C --> G["User Error UI - Friendly Message"]
 
     style A fill:#fce4ec,stroke:#e91e63,color:#880e4f
     style B fill:#fce4ec,stroke:#e91e63,color:#880e4f
