@@ -1,31 +1,32 @@
-name: Auto Green Bot
+name: Auto Green
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/30 * * * *" # cek tiap 30 menit
   workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: auto-green
-  cancel-in-progress: true
-
 jobs:
   auto-green:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo pakai PAT pribadi
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0
 
-      - name: Random delay (0-30 menit) biar berasa 30-60 menit
-        run: sleep $(( RANDOM % 1800 ))
+      - name: Randomize interval (skip 50% runs)
+        run: |
+          # 50% skip -> rata-rata commit tiap ~60 menit
+          if [ $((RANDOM % 2)) -eq 0 ]; then
+            echo "Random skip this run."
+            exit 0
+          fi
 
-      - name: Generate random data
+      - name: Generate random data (always changes)
         run: |
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           RANDOM_NUM=$((RANDOM % 10000))
@@ -43,6 +44,8 @@ jobs:
         run: |
           git config user.name "${GIT_USER}"
           git config user.email "${GIT_EMAIL}"
+
           git add data.json
-          git commit -m "🌱 Auto update by ${GIT_USER} - $(date -u +"%Y-%m-%d %H:%M:%S")" || echo "Tidak ada perubahan untuk di-commit"
+          git commit -m "🌱 Auto update by ${GIT_USER} - $(date -u +"%Y-%m-%d %H:%M:%S UTC")" || exit 0
+
           git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:main
