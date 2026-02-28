@@ -1,0 +1,48 @@
+name: Auto Green Bot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-green
+  cancel-in-progress: true
+
+jobs:
+  auto-green:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo pakai PAT pribadi
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Random delay (0-30 menit) biar berasa 30-60 menit
+        run: sleep $(( RANDOM % 1800 ))
+
+      - name: Generate random data
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          RANDOM_NUM=$((RANDOM % 10000))
+          RANDOM_HEX=$(openssl rand -hex 8)
+          MOODS=("happy" "calm" "focused" "sleepy" "productive")
+          MOOD=${MOODS[$RANDOM % ${#MOODS[@]}]}
+          echo "{\"last_update\": \"$TIMESTAMP\", \"random_number\": $RANDOM_NUM, \"random_hex\": \"$RANDOM_HEX\", \"mood\": \"$MOOD\"}" > data.json
+          cat data.json
+
+      - name: Commit dan push sebagai user pribadi
+        env:
+          TOKEN: ${{ secrets.PAT_TOKEN }}
+          GIT_USER: ${{ secrets.USER_NAME }}
+          GIT_EMAIL: ${{ secrets.USER_EMAIL }}
+        run: |
+          git config user.name "${GIT_USER}"
+          git config user.email "${GIT_EMAIL}"
+          git add data.json
+          git commit -m "🌱 Auto update by ${GIT_USER} - $(date -u +"%Y-%m-%d %H:%M:%S")" || echo "Tidak ada perubahan untuk di-commit"
+          git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:main
