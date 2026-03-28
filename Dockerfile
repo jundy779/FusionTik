@@ -12,7 +12,7 @@ WORKDIR /app
 RUN corepack enable pnpm
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml preinstall.js* ./
 
 # Install dependencies (production + dev for build)
 RUN pnpm install --frozen-lockfile
