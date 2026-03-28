@@ -8,11 +8,14 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
+# Enable corepack for pnpm support
+RUN corepack enable pnpm
+
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies (production + dev for build)
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # ============================================================
 # Stage 2: Builder
@@ -37,8 +40,11 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 # Disable Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Enable corepack for pnpm
+RUN corepack enable pnpm
+
 # Build the Next.js application
-RUN npm run build
+RUN pnpm run build
 
 # ============================================================
 # Stage 3: Runner (Production)
