@@ -426,7 +426,16 @@ export async function POST(req: Request) {
   const origin = req.headers.get("origin") || ""
   const referer = req.headers.get("referer") || ""
   const isLocalhost = origin.includes("localhost") || referer.includes("localhost")
-  const isAllowedDomain = origin.includes("fusiontik.vercel.app") || referer.includes("fusiontik.vercel.app")
+  
+  const allowedDomains = [
+    "fusiontik.vercel.app",
+    "fusiontik.fusionify.biz.id",
+    "fusiontik.fusionifydgital.com",
+    "fusiontik.fusionifydigital.com", // Adding the correctly spelled version just in case
+    "fusiontik.premiumify.my.id"
+  ]
+  
+  const isAllowedDomain = allowedDomains.some(domain => origin.includes(domain) || referer.includes(domain))
   
   // Require requests to come from our frontend (if origin/referer is present)
   if ((origin || referer) && !isLocalhost && !isAllowedDomain) {
