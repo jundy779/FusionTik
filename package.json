@@ -9,8 +9,7 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
-    "preinstall": "node preinstall.js"
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
