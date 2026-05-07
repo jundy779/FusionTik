@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useDownloadStats, type DownloadStats } from "@/hooks/use-download-stats"
+import { useDownloadStats, type DownloadStats } from "@/modules/downloader/hooks/useDownloadStats"
 
 interface StatsCardProps {
   onResetStats?: () => void

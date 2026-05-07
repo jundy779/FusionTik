@@ -13,7 +13,7 @@ import {
   generateFilename,
   formatFileSize,
   type DownloadProgress,
-} from "@/lib/download-utils"
+} from "@/modules/downloader/services/downloadClient"
 
 // ============== Helpers ==============
 

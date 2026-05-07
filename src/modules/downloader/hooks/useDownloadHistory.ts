@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useDownloadStats } from "./use-download-stats"
+import { useDownloadStats } from "./useDownloadStats"
 
 /** Maximum number of history entries kept in localStorage. */
 const MAX_HISTORY_SIZE = 100

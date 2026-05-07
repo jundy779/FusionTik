@@ -18,14 +18,14 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Navbar } from "@/components/navbar"
-import { useToast } from "@/components/ui/use-toast"
-import { ResultCard } from "@/components/result-card"
-import { StatsCard } from "@/components/stats-card"
-import { VideoPreview } from "@/components/video-preview"
-import { useDownloadHistory, type DownloadHistoryItem } from "@/hooks/use-download-history"
-import { useDownloadStats } from "@/hooks/use-download-stats"
-import { useGlobalStats } from "@/hooks/use-global-stats"
-import { downloadWithProgress, generateFilename } from "@/lib/download-utils"
+import { useToast } from "@/hooks/use-toast"
+import { ResultCard } from "@/modules/downloader/components/ResultCard"
+import { StatsCard } from "@/modules/downloader/components/StatsCard"
+import { VideoPreview } from "@/modules/downloader/components/VideoPreview"
+import { useDownloadHistory, type DownloadHistoryItem } from "@/modules/downloader/hooks/useDownloadHistory"
+import { useDownloadStats } from "@/modules/downloader/hooks/useDownloadStats"
+import { useGlobalStats } from "@/modules/downloader/hooks/useGlobalStats"
+import { downloadWithProgress, generateFilename } from "@/modules/downloader/services/downloadClient"
 
 // ============== Types ==============
 

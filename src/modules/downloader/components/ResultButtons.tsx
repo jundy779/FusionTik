@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { ArrowLeft, Copy, Check, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { downloadWithProgress, generateFilename } from "@/lib/download-utils"
+import { useToast } from "@/hooks/use-toast"
+import { downloadWithProgress, generateFilename } from "@/modules/downloader/services/downloadClient"
 
 // ============== Types ==============
 
