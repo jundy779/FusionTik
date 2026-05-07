@@ -1,4 +1,4 @@
-const contentSecurityPolicy = [
+export const contentSecurityPolicy = [
   "default-src 'self';",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com;",
   "style-src 'self' 'unsafe-inline';",

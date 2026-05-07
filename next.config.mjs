@@ -1,4 +1,4 @@
-import { securityHeaders } from './config/security-headers.js'
+import { securityHeaders } from './config/security-headers.mjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
