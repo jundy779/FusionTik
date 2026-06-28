@@ -31,6 +31,16 @@ export interface DownloadHistoryItem {
   description?: string
   /** TikTok username of the creator. */
   creator?: string
+  creatorName?: string
+  creatorUsername?: string
+  postUrl?: string
+  postedAt?: string
+  regionLabel?: string
+  views?: number
+  likes?: number
+  comments?: number
+  shares?: number
+  favorites?: number
   /** Duration of the video in seconds as a string. */
   duration?: string
 }

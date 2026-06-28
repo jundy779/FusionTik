@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Play, Pause, Volume2, VolumeX, Download, Music, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Play, Pause, Volume2, VolumeX, Download, Music, Loader2, ChevronLeft, ChevronRight, User, Calendar, MapPin, Eye, Heart, MessageCircle, Star, Share2, Video, Images } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -76,6 +76,29 @@ function formatResultDuration(value?: string): string {
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
 }
 
+function formatCount(value?: number): string {
+  if (value === undefined || value === null) return ""
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\.0$/, "")}K`
+  return String(value)
+}
+
+function formatPostedDate(value?: string): string {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+function getCreatorProfileUrl(username?: string): string | undefined {
+  if (!username) return undefined
+  return `https://tiktok.com/@${encodeURIComponent(username)}`
+}
+
 // ============== Types ==============
 
 interface VideoPreviewProps {
@@ -93,6 +116,16 @@ interface VideoPreviewProps {
     audioUrl?: string
     description?: string
     creator?: string
+    creatorName?: string
+    creatorUsername?: string
+    postUrl?: string
+    postedAt?: string
+    regionLabel?: string
+    views?: number
+    likes?: number
+    comments?: number
+    shares?: number
+    favorites?: number
     imageUrls?: string[]
   }
   onDownloadVideo: () => void
@@ -145,6 +178,13 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
   const isVideo = result.type === "video"
   const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
   const imageCount = result.imageUrls?.length ?? 0
+  const creatorLabel = result.creatorName || (result.creatorUsername ? `@${result.creatorUsername}` : result.creator ? `@${result.creator}` : "")
+  const creatorProfileUrl = getCreatorProfileUrl(result.creatorUsername || result.creator)
+  const postLink = result.postUrl || result.url
+  const hasMetaHeader = !!(creatorLabel || result.postedAt || result.regionLabel)
+  const hasStats = [result.views, result.likes, result.comments, result.favorites, result.shares].some(
+    (value) => typeof value === "number",
+  )
 
   // ---- Video controls ----
 
@@ -272,12 +312,15 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
               </p>
             )}
             <div className="flex items-center justify-center gap-3">
-              <Badge variant="secondary" className="px-3 py-1">
+              <Badge variant="secondary" className="px-3 py-1 inline-flex items-center gap-1.5">
                 {isVideo ? (
-                  "🎥 Video"
+                  <>
+                    <Video className="h-3.5 w-3.5" />
+                    Video
+                  </>
                 ) : (
                   <>
-                    🖼️{" "}
+                    <Images className="h-3.5 w-3.5" />
                     {result.imageUrls && result.imageUrls.length > 0
                       ? `Photo Mode (${result.imageUrls.length} images)`
                       : "Image"}
@@ -440,8 +483,52 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
           </div>
 
           {/* Caption */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Caption</h3>
+
+            {hasMetaHeader && (
+              <div className="space-y-2 text-sm text-muted-foreground">
+                {creatorLabel && (
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 shrink-0 mt-0.5" />
+                    {creatorProfileUrl ? (
+                      <a
+                        href={creatorProfileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                      >
+                        {creatorLabel}
+                      </a>
+                    ) : (
+                      <span className="font-medium text-foreground">{creatorLabel}</span>
+                    )}
+                  </div>
+                )}
+
+                {result.postedAt && (
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 shrink-0 mt-0.5" />
+                    <a
+                      href={postLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700 hover:underline"
+                    >
+                      {formatPostedDate(result.postedAt)}
+                    </a>
+                  </div>
+                )}
+
+                {result.regionLabel && (
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{result.regionLabel}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {result.description ? (
               <div
                 className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap text-sm"
@@ -450,6 +537,41 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             ) : (
               <div className="text-gray-500 dark:text-gray-400 text-sm italic">
                 No caption available for this content
+              </div>
+            )}
+
+            {hasStats && (
+              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm text-muted-foreground">
+                {typeof result.views === "number" && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Eye className="h-4 w-4" />
+                    {formatCount(result.views)}
+                  </span>
+                )}
+                {typeof result.likes === "number" && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Heart className="h-4 w-4" />
+                    {formatCount(result.likes)}
+                  </span>
+                )}
+                {typeof result.comments === "number" && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MessageCircle className="h-4 w-4" />
+                    {formatCount(result.comments)}
+                  </span>
+                )}
+                {typeof result.favorites === "number" && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Star className="h-4 w-4" />
+                    {formatCount(result.favorites)}
+                  </span>
+                )}
+                {typeof result.shares === "number" && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Share2 className="h-4 w-4" />
+                    {formatCount(result.shares)}
+                  </span>
+                )}
               </div>
             )}
           </div>

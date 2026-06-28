@@ -1,0 +1,36 @@
+# FusionTik
+
+> Free online TikTok downloader — save videos without watermark (MP4), extract audio (MP3), and download Photo Mode images. No login required.
+
+## What is FusionTik?
+
+FusionTik (https://fusiontik.vercel.app) is a web-based TikTok downloader built with Next.js. Users paste a TikTok URL and download content directly to their device. Files are not stored on FusionTik servers.
+
+## Supported formats
+
+- MP4 video without TikTok watermark
+- MP3 audio extraction
+- JPG/PNG images from TikTok Photo Mode (carousel posts)
+
+## How to use
+
+1. Copy a TikTok video or photo link (tiktok.com, vt.tiktok.com, vm.tiktok.com)
+2. Paste the link at https://fusiontik.vercel.app
+3. Click Download
+4. Choose MP4, MP3, or image download
+
+## Key pages
+
+- Home / Downloader: https://fusiontik.vercel.app/
+- FAQ: https://fusiontik.vercel.app/faq
+- Help Center: https://fusiontik.vercel.app/help-center
+- Privacy Policy: https://fusiontik.vercel.app/privacy
+- Terms of Service: https://fusiontik.vercel.app/terms
+
+## Privacy
+
+Download history is stored locally in the user's browser only. FusionTik does not upload or store downloaded media on its servers.
+
+## Keywords
+
+TikTok downloader, download TikTok without watermark, TikTok MP4 download, TikTok MP3 download, TikTok Photo Mode download, TikTok downloader Indonesia, free TikTok downloader

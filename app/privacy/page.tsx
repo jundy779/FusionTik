@@ -1,9 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { siteConfig } from "@/lib/site-config"
 
 export const metadata: Metadata = {
   title: "Privacy Policy | FusionTik",
   description: "FusionTik Privacy Policy - Learn how we protect your data and privacy",
+  alternates: {
+    canonical: `${siteConfig.url}/privacy`,
+  },
 }
 
 export default function PrivacyPolicyPage() {

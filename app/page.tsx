@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Download, Info, Loader2, AlertCircle } from "lucide-react"
+import { Download, Info, Loader2, AlertCircle, Globe, ClipboardPaste } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -38,6 +38,17 @@ interface TikTokApiResponse {
   music?: string
   description?: string
   creator?: string
+  creatorName?: string
+  creatorUsername?: string
+  postUrl?: string
+  postedAt?: string
+  region?: string
+  regionLabel?: string
+  views?: number
+  likes?: number
+  comments?: number
+  shares?: number
+  favorites?: number
   duration?: string
   thumbnail?: string
   error?: string
@@ -55,49 +66,18 @@ interface TikTokResult {
   imageUrls?: string[]
   description?: string
   creator?: string
+  creatorName?: string
+  creatorUsername?: string
+  postUrl?: string
+  postedAt?: string
+  regionLabel?: string
+  views?: number
+  likes?: number
+  comments?: number
+  shares?: number
+  favorites?: number
   duration?: string
   thumbnail?: string
-}
-
-// ============== FAQ Schema (structured data) ==============
-
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "Is this service free?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes, FusionTik is completely free to use. There are no hidden fees or subscriptions required.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is it legal to download TikTok videos?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Downloading videos for personal use is generally acceptable. However, you should not redistribute or use the content commercially without permission from the creator.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What formats can I download?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "You can download TikTok content as MP4 videos, MP3 audio files, or JPG/PNG images depending on the original content type.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Do you store the downloaded videos?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "No, we don't store any downloaded videos or user data on our servers. Your download history is saved locally on your device only.",
-      },
-    },
-  ],
 }
 
 // ============== API helper ==============
@@ -177,6 +157,16 @@ export default function TikTokDownloader() {
         imageUrls: data.type === "image" ? data.images : undefined,
         description: data.description,
         creator: data.creator,
+        creatorName: data.creatorName,
+        creatorUsername: data.creatorUsername,
+        postUrl: data.postUrl,
+        postedAt: data.postedAt,
+        regionLabel: data.regionLabel,
+        views: data.views,
+        likes: data.likes,
+        comments: data.comments,
+        shares: data.shares,
+        favorites: data.favorites,
         duration: data.duration,
         thumbnail: data.thumbnail,
       }
@@ -294,8 +284,9 @@ export default function TikTokDownloader() {
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
                 <div className="gradient-bg text-white px-8 py-4 rounded-2xl glow shimmer">
-                  <p className="text-xl font-bold">
-                    🌍 {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
+                  <p className="text-xl font-bold inline-flex items-center justify-center gap-2">
+                    <Globe className="h-5 w-5 shrink-0" />
+                    {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
                   </p>
                   <p className="text-sm opacity-90 mt-1">Trusted by users globally</p>
                 </div>
@@ -326,7 +317,8 @@ export default function TikTokDownloader() {
                         onClick={handlePasteClick}
                         className="h-12 px-6 border-white/20 hover:bg-white/10 transition-all"
                       >
-                        📋 Paste
+                        <ClipboardPaste className="mr-2 h-4 w-4" />
+                        Paste
                       </Button>
                     </div>
                     <Button
@@ -660,12 +652,6 @@ export default function TikTokDownloader() {
           </motion.section>
         )}
       </main>
-
-      {/* Structured data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
 
       {/* Footer */}
       <motion.footer

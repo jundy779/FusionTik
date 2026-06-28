@@ -1,38 +1,13 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from "next"
+import { publicRoutes, siteConfig } from "@/lib/site-config"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://fusiontik.vercel.app'
+  const baseUrl = siteConfig.url.replace(/\/$/, "")
 
-    return [
-        {
-            url: baseUrl,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 1,
-        },
-        {
-            url: `${baseUrl}/#download`,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 0.9,
-        },
-        {
-            url: `${baseUrl}/#about`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.7,
-        },
-        {
-            url: `${baseUrl}/#history`,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 0.6,
-        },
-        {
-            url: `${baseUrl}/#stats`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.5,
-        },
-    ]
+  return publicRoutes.map(({ path, priority, changeFrequency }) => ({
+    url: `${baseUrl}${path}`,
+    lastModified: new Date(),
+    changeFrequency,
+    priority,
+  }))
 }

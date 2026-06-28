@@ -1,13 +1,24 @@
+import type { Metadata } from "next"
+import Link from "next/link"
+import { siteConfig } from "@/lib/site-config"
+
+export const metadata: Metadata = {
+  title: "Feedback",
+  description: "Send feedback, bug reports, or suggestions for FusionTik TikTok downloader.",
+  alternates: {
+    canonical: `${siteConfig.url}/feedback`,
+  },
+}
+
 export default function FeedbackPage() {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="container mx-auto px-4 py-8 space-y-6 max-w-3xl">
       <h1 className="text-3xl font-bold">Feedback</h1>
-      <p className="text-muted-foreground">
-        We value your feedback!  Use the form below to send us suggestions, report bugs, or share your
-        experience using SlowTik.  Your input helps us improve the service for
-        everyone.
+      <p className="text-muted-foreground leading-relaxed">
+        We value your feedback about {siteConfig.name}. Share suggestions, report bugs, or tell us
+        about your experience using our TikTok downloader.
       </p>
-      {/* The form below is a placeholder; in a real application you would handle submissions appropriately */}
+
       <form className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium">
@@ -27,9 +38,9 @@ export default function FeedbackPage() {
           <textarea
             id="message"
             rows={6}
-            placeholder="Enter your feedback here..."
+            placeholder="Describe your issue or suggestion..."
             className="mt-1 block w-full border border-border rounded-md px-3 py-2 bg-background"
-          ></textarea>
+          />
         </div>
         <button
           type="submit"
@@ -40,9 +51,13 @@ export default function FeedbackPage() {
           Submit
         </button>
       </form>
+
       <p className="text-sm text-muted-foreground">
-        Note: This form is non-functional in the demo environment.  To contact us directly, please send an
-        email to <a href="mailto:support@example.com" className="underline">support@example.com</a>.
+        This form is non-functional in the demo. Return to{" "}
+        <Link href="/" className="text-blue-500 hover:underline">
+          FusionTik
+        </Link>
+        .
       </p>
     </div>
   )

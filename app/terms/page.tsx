@@ -1,9 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { siteConfig } from "@/lib/site-config"
 
 export const metadata: Metadata = {
   title: "Terms of Service | FusionTik",
   description: "FusionTik Terms of Service - Read our terms and conditions",
+  alternates: {
+    canonical: `${siteConfig.url}/terms`,
+  },
 }
 
 export default function TermsOfServicePage() {
