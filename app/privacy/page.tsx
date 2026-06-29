@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-2xl font-semibold mb-3">4. Third-Party Services</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-1">
               <li>Vercel Analytics - Anonymous usage statistics</li>
-              <li>Supabase - Global download counter (no personal data)</li>
+              <li>MongoDB Atlas - Global download counter (no personal data)</li>
             </ul>
           </section>
 

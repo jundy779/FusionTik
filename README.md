@@ -19,8 +19,8 @@ _⚡ FusionTik_
   <a href="https://tailwindcss.com/">
     <img src="https://img.shields.io/badge/Tailwind-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
   </a>
-  <a href="https://supabase.com/">
-    <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <a href="https://www.mongodb.com/atlas">
+    <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
   </a>
   <a href="https://vercel.com/">
     <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
@@ -65,7 +65,7 @@ _🌸 Overview_
 
 Tidak perlu install aplikasi. Tidak perlu login. Cukup **paste link TikTok**, klik **Download**, dan simpan konten ke perangkatmu.
 
-Built on Next.js • Powered by Supabase • Written in TypeScript
+Built on Next.js • Powered by MongoDB Atlas • Written in TypeScript
 
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
@@ -89,7 +89,7 @@ graph TD
     B -->|Show VideoPreview| K["Download UI - Progress Bar"]
     K -->|downloadWithProgress| L["TikTok CDN - Direct Download"]
     B -->|POST /api/global-stats| M["Global Counter - Increment"]
-    M -->|Atomic RPC| N[("Supabase DB - global_stats")]
+    M -->|Atomic $inc| N[("MongoDB Atlas - global_stats")]
     M -->|Fallback| O[("JSON File - global-stats.json")]
 
     style A fill:#e3f2fd,stroke:#2196f3,stroke-width:3px,color:#0d47a1
@@ -140,7 +140,7 @@ graph TB
     end
 
     subgraph INFRASTRUCTURE["Infrastructure Layer"]
-        I1["lib/supabase.ts - DB Client"]
+        I1["mongoClient.ts - DB Client"]
         I2["lib/download-utils.ts - Download Engine"]
         I3["lib/utils.ts - Utilities"]
     end
@@ -148,7 +148,7 @@ graph TB
     subgraph EXTERNAL["External Services"]
         E1["Zell API - Provider 1"]
         E2["Sanka API - Provider 2"]
-        E3["Supabase DB - PostgreSQL"]
+        E3["MongoDB Atlas"]
         E4["TikTok CDN - Media Files"]
         E5["Telegram API - Alerts"]
     end
@@ -195,7 +195,7 @@ graph LR
 
     subgraph LIB["Libraries"]
         DU["download-utils"]
-        SB["supabase client"]
+        MC["mongoClient"]
     end
 
     FORM -->|submit| TK
@@ -209,7 +209,7 @@ graph LR
     PAGE --> UGS
     UDH -->|localStorage| UDS
     UGS -->|fetch| GS
-    GS --> SB
+    GS --> MC
     PAGE -->|increment| GS
 
     style PAGE fill:#e3f2fd,stroke:#2196f3
@@ -244,7 +244,7 @@ flowchart LR
 
     subgraph STORAGE["Storage"]
         LS["localStorage - history and stats"]
-        DB[("Supabase - global_stats")]
+        DB[("MongoDB Atlas - global_stats")]
     end
 
     subgraph DOWNLOAD["Download"]
@@ -283,7 +283,7 @@ flowchart LR
 | Pattern | Implementasi | File |
 |---------|-------------|------|
 | **Provider Pattern** | Fallback chain Zell → Sanka | `app/api/tiktok/route.ts` |
-| **Repository Pattern** | Supabase ↔ File JSON fallback | `app/api/global-stats/route.ts` |
+| **Repository Pattern** | MongoDB ↔ File JSON fallback | `app/api/global-stats/route.ts` |
 | **Custom Hook Pattern** | State management terpisah per concern | `hooks/` |
 | **Compound Component** | VideoPreview + download buttons | `components/video-preview.tsx` |
 | **Strategy Pattern** | Download: Blob progress vs window.open | `lib/download-utils.ts` |
@@ -414,7 +414,7 @@ sequenceDiagram
     participant API as API Server
     participant Z as Zell Provider
     participant S as Sanka Provider
-    participant DB as Supabase
+    participant DB as MongoDB Atlas
     participant TG as Telegram
 
     U->>FE: Paste TikTok URL
@@ -447,7 +447,7 @@ sequenceDiagram
     FE-->>U: File saved
 
     FE->>API: POST /api/global-stats
-    API->>DB: RPC increment_global_downloads
+    API->>DB: $inc totalDownloads
     DB-->>API: new_total
     API-->>FE: totalDownloads N
     FE-->>U: Update counter display
@@ -499,7 +499,7 @@ FusionTik/
 │
 ├── 📁 lib/
 │   ├── 📄 download-utils.ts         # ⭐ Download dengan progress tracking
-│   ├── 📄 supabase.ts               # Supabase client (nullable)
+│   ├── 📄 mongoClient.ts            # MongoDB client (global counter)
 │   └── 📄 utils.ts                  # Tailwind merge utilities
 │
 ├── 📁 data/
@@ -556,7 +556,7 @@ _🛠️ Tech Stack_
   <img src="https://img.shields.io/badge/Tailwind_CSS_3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
   <img src="https://img.shields.io/badge/shadcn%2Fui-000000?style=for-the-badge&logo=shadcnui&logoColor=white" />
   <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white" />
-  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" />
   <img src="https://img.shields.io/badge/Nodemailer-22B573?style=for-the-badge&logo=nodemailer&logoColor=white" />
   <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
 </p>
@@ -568,7 +568,7 @@ _🛠️ Tech Stack_
 | **Styling** | Tailwind CSS | 3 | Utility-first CSS |
 | **UI Components** | shadcn/ui | latest | 50+ komponen siap pakai |
 | **Animation** | Framer Motion | latest | Animasi halus & interaktif |
-| **Database** | Supabase | 2.x | Global download counter |
+| **Database** | MongoDB Atlas | 6.x | Global download counter |
 | **Email** | Nodemailer | 6.x | Alert notifikasi via SMTP |
 | **Deployment** | Vercel | — | Hosting + Edge Functions |
 
@@ -581,7 +581,7 @@ _⚡ Quick Start_
 
 - **Node.js 18+**
 - **npm / pnpm / yarn**
-- Akun **Supabase** (opsional, untuk global stats)
+- Akun **MongoDB Atlas** (opsional, untuk global stats persisten)
 
 ### 1. Clone & Install
 
@@ -600,9 +600,9 @@ cp env.example .env.local
 Edit `.env.local`:
 
 ```env
-# Supabase (untuk global stats — opsional)
-NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
+# MongoDB (global download counter — production)
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/fusiontik?retryWrites=true&w=majority
+MONGODB_DB_NAME=fusiontik
 
 # Notifikasi error (semua opsional)
 TELEGRAM_BOT_TOKEN=
@@ -639,8 +639,8 @@ _⚙️ Environment Variables_
 
 | Variable | Wajib | Deskripsi |
 |----------|:-----:|-----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ❌ | URL project Supabase untuk global stats |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ❌ | Anon key Supabase |
+| `MONGODB_URI` | ❌ | Connection string MongoDB Atlas untuk global stats |
+| `MONGODB_DB_NAME` | ❌ | Nama database (default: `fusiontik`) |
 | `ZELL_TIKTOK_API_URL` | ❌ | Override URL provider Zell |
 | `SANKA_TIKTOK_API_URL` | ❌ | Override URL provider Sanka |
 | `SANKA_TIKTOK_API_KEY` | ❌ | API key untuk provider Sanka |
@@ -653,7 +653,7 @@ _⚙️ Environment Variables_
 | `SMTP_PASS` | ❌ | Password / App Password email |
 | `ALERT_EMAIL_TO` | ❌ | Email penerima alert |
 
-> **Catatan:** Jika Supabase tidak dikonfigurasi, global stats menggunakan `data/global-stats.json` sebagai fallback (cocok untuk development).
+> **Catatan:** Jika `MONGODB_URI` tidak dikonfigurasi, global stats menggunakan `data/global-stats.json` sebagai fallback (cocok untuk development).
 
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
@@ -699,8 +699,7 @@ docker pull ghcr.io/jundy779/fusiontik:latest
 docker run -d \
   --name fusiontik \
   -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=your_supabase_url \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key \
+  -e MONGODB_URI=your_mongodb_uri \
   -e TELEGRAM_BOT_TOKEN=your_telegram_token \
   -e TELEGRAM_CHAT_ID=your_chat_id \
   ghcr.io/jundy779/fusiontik:latest
@@ -725,8 +724,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-fusiontik}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     restart: unless-stopped
@@ -739,45 +738,22 @@ docker compose up -d
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
-_🗄️ Setup Supabase_
+_🗄️ Setup MongoDB Atlas_
 
-Untuk mengaktifkan global download counter yang persisten:
+Untuk mengaktifkan global download counter yang persisten di production (Vercel):
 
-**1. Buat Tabel**
+**1. Buat cluster gratis** di [MongoDB Atlas](https://www.mongodb.com/atlas) → Database Access (user) → Network Access (allow `0.0.0.0/0` untuk Vercel).
 
-```sql
-CREATE TABLE global_stats (
-  id BIGINT PRIMARY KEY DEFAULT 1,
-  total_downloads BIGINT DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+**2. Salin connection string** → tambahkan ke `.env.local` dan Vercel Environment Variables:
 
-INSERT INTO global_stats (id, total_downloads) VALUES (1, 0);
+```env
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fusiontik?retryWrites=true&w=majority
+MONGODB_DB_NAME=fusiontik
 ```
 
-**2. Buat RPC Function (Atomic Increment)**
+**3. Collection otomatis dibuat** saat download pertama (`global_stats`, dokumen `_id: "counter"`). Tidak perlu SQL atau schema manual.
 
-```sql
-CREATE OR REPLACE FUNCTION increment_global_downloads()
-RETURNS BIGINT LANGUAGE plpgsql AS $$
-DECLARE new_total BIGINT;
-BEGIN
-  UPDATE global_stats
-  SET total_downloads = total_downloads + 1, updated_at = NOW()
-  WHERE id = 1
-  RETURNING total_downloads INTO new_total;
-  RETURN new_total;
-END;
-$$;
-```
-
-**3. Row Level Security**
-
-```sql
-ALTER TABLE global_stats ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read" ON global_stats FOR SELECT USING (true);
-CREATE POLICY "Allow public update" ON global_stats FOR UPDATE USING (true);
-```
+**4. Verifikasi** — buka `/api/global-stats`, response harus `"source": "mongodb"`.
 
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
@@ -818,7 +794,7 @@ Time: 2025-01-15T10:30:00.000Z
 _📊 Statistik & Analytics_
 
 ### Global Stats
-Disimpan di **Supabase** dengan atomic increment via RPC. Fallback ke **file JSON** untuk development. Ditampilkan di hero section halaman utama.
+Disimpan di **MongoDB Atlas** dengan atomic `$inc`. Fallback ke **file JSON** untuk development. Ditampilkan di hero section halaman utama.
 
 ### Personal Stats (Per User)
 Disimpan di **localStorage** browser:
@@ -851,6 +827,10 @@ _🔒 Keamanan & Privasi_
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 _📝 Changelog_
+
+### v2.5.2 — MongoDB Counter
+- ✅ Global download counter migrated to MongoDB Atlas (`MONGODB_URI`)
+- ✅ Removed Supabase dependency and legacy code
 
 ### v2.1.0 — Clean Code & Security Update
 - ✅ **Refactor**: hapus semua `any` type → proper TypeScript interfaces
@@ -924,7 +904,7 @@ _💖 Acknowledgements_
   <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
   <img src="https://img.shields.io/badge/shadcn%2Fui-000000?style=for-the-badge&logo=shadcnui&logoColor=white" />
   <img src="https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white" />
-  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" />
   <img src="https://img.shields.io/badge/Radix_UI-161618?style=for-the-badge&logo=radixui&logoColor=white" />
   <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
 </p>

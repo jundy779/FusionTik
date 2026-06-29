@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import path from "path"
-import { supabase, isSupabaseConfigured } from "@/shared/lib/supabaseClient"
-
-// ============== Types ==============
+import {
+  isMongoConfigured,
+  readStatsFromMongo,
+  incrementStatsInMongo,
+} from "@/shared/lib/mongoClient"
 
 interface Stats {
   totalDownloads: number
 }
 
-// ============== Constants ==============
-
 const STATS_FILE = path.join(process.cwd(), "data", "global-stats.json")
-
-// ============== File-based storage (fallback for development) ==============
 
 async function ensureDataDirectory(): Promise<void> {
   const dataDir = path.dirname(STATS_FILE)
@@ -43,68 +41,17 @@ async function writeStatsToFile(stats: Stats): Promise<void> {
   }
 }
 
-// ============== Supabase storage (production) ==============
-
-async function readStatsFromSupabase(): Promise<Stats> {
-  if (!supabase) throw new Error("Supabase not configured")
-
-  const { data, error } = await supabase
-    .from("global_stats")
-    .select("total_downloads")
-    .eq("id", 1)
-    .single()
-
-  if (error) throw error
-  return { totalDownloads: data?.total_downloads ?? 0 }
-}
-
-/**
- * Atomically increments the global download counter in Supabase using an RPC call.
- * Falls back to a read-then-write if the RPC is not available.
- */
-async function incrementStatsInSupabase(): Promise<Stats> {
-  if (!supabase) throw new Error("Supabase not configured")
-
-  // Attempt atomic increment via Supabase RPC (requires a DB function named
-  // `increment_global_downloads` that returns the new total_downloads value).
-  const { data: rpcData, error: rpcError } = await supabase.rpc(
-    "increment_global_downloads",
-  )
-
-  if (!rpcError && typeof rpcData === "number") {
-    return { totalDownloads: rpcData }
-  }
-
-  // Fallback: read-then-write (non-atomic, acceptable for low-traffic scenarios)
-  const { data: current } = await supabase
-    .from("global_stats")
-    .select("total_downloads")
-    .eq("id", 1)
-    .single()
-
-  const newTotal = (current?.total_downloads ?? 0) + 1
-
-  const { data, error } = await supabase
-    .from("global_stats")
-    .update({ total_downloads: newTotal })
-    .eq("id", 1)
-    .select("total_downloads")
-    .single()
-
-  if (error) throw error
-  return { totalDownloads: data?.total_downloads ?? newTotal }
-}
-
-// ============== API Handlers ==============
-
 export async function GET() {
   try {
-    if (isSupabaseConfigured()) {
+    if (isMongoConfigured()) {
       try {
-        const stats = await readStatsFromSupabase()
-        return NextResponse.json({ totalDownloads: stats.totalDownloads, source: "supabase" })
-      } catch (supabaseError) {
-        console.error("Supabase read error, falling back to file:", supabaseError)
+        const stats = await readStatsFromMongo()
+        return NextResponse.json({
+          totalDownloads: stats.totalDownloads,
+          source: "mongodb",
+        })
+      } catch (mongoError) {
+        console.error("MongoDB read error, falling back to file:", mongoError)
       }
     }
 
@@ -118,15 +65,15 @@ export async function GET() {
 
 export async function POST() {
   try {
-    if (isSupabaseConfigured()) {
+    if (isMongoConfigured()) {
       try {
-        const stats = await incrementStatsInSupabase()
+        const stats = await incrementStatsInMongo()
         return NextResponse.json({
           totalDownloads: stats.totalDownloads,
-          message: "Global counter updated (Supabase)",
+          message: "Global counter updated (MongoDB)",
         })
-      } catch (supabaseError) {
-        console.error("Supabase increment error, falling back to file:", supabaseError)
+      } catch (mongoError) {
+        console.error("MongoDB increment error, falling back to file:", mongoError)
       }
     }
 
