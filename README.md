@@ -641,6 +641,9 @@ _⚙️ Environment Variables_
 |----------|:-----:|-----------|
 | `MONGODB_URI` | ❌ | Connection string MongoDB Atlas untuk global stats |
 | `MONGODB_DB_NAME` | ❌ | Nama database (default: `fusiontik`) |
+| `KV_REST_API_URL` | ❌ | Vercel KV / Upstash Redis REST URL (rate limit terpusat) |
+| `KV_REST_API_TOKEN` | ❌ | Token REST untuk rate limit |
+| `ALLOWED_ORIGIN_DOMAINS` | ❌ | Domain tambahan untuk origin check API (comma-separated) |
 | `ZELL_TIKTOK_API_URL` | ❌ | Override URL provider Zell |
 | `SANKA_TIKTOK_API_URL` | ❌ | Override URL provider Sanka |
 | `SANKA_TIKTOK_API_KEY` | ❌ | API key untuk provider Sanka |
@@ -653,7 +656,26 @@ _⚙️ Environment Variables_
 | `SMTP_PASS` | ❌ | Password / App Password email |
 | `ALERT_EMAIL_TO` | ❌ | Email penerima alert |
 
-> **Catatan:** Jika `MONGODB_URI` tidak dikonfigurasi, global stats menggunakan `data/global-stats.json` sebagai fallback (cocok untuk development).
+> **Catatan:** Tanpa `MONGODB_URI`, global stats pakai `data/global-stats.json`. Tanpa `KV_REST_API_*`, rate limit fallback ke in-memory (cukup untuk dev lokal).
+
+<!-- Divider -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+
+_🔐 Setup Vercel KV (Rate Limiting)_
+
+Untuk rate limit terpusat di production (mencegah abuse API):
+
+1. Vercel Dashboard → **Storage** → **Create Database** → **KV**
+2. Connect ke project FusionTik — env `KV_REST_API_URL` & `KV_REST_API_TOKEN` otomatis terisi
+3. Redeploy
+
+Limit default per IP per menit:
+
+| Endpoint | Limit |
+|----------|-------|
+| `POST /api/tiktok` | 10 |
+| `GET /api/global-stats` | 60 |
+| `POST /api/global-stats` | 10 |
 
 <!-- Divider -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
@@ -827,6 +849,11 @@ _🔒 Keamanan & Privasi_
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 
 _📝 Changelog_
+
+### v2.5.3 — API Security
+- ✅ Distributed rate limiting via Vercel KV / Upstash Redis
+- ✅ Origin check + rate limit on `/api/global-stats` (GET & POST)
+- ✅ Shared API guard for `/api/tiktok` and global stats
 
 ### v2.5.2 — MongoDB Counter
 - ✅ Global download counter migrated to MongoDB Atlas (`MONGODB_URI`)

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import { guardApiRequest } from "@/shared/lib/api-guard"
 
 // ============== Types ==============
 
@@ -121,38 +122,6 @@ interface AlertPayload {
 
 const tiktokRegex =
   /^(https?:\/\/)?(www\.|vm\.|vt\.)?(tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|m\.tiktok\.com)\//
-
-// Rate limiting cache (In-memory per serverless instance)
-const rateLimitCache = new Map<string, { count: number; resetTime: number }>()
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const windowMs = 60 * 1000 // 1 minute window
-  const maxRequests = 10 // Max 10 requests per minute per IP
-
-  const record = rateLimitCache.get(ip)
-  if (!record || now > record.resetTime) {
-    rateLimitCache.set(ip, { count: 1, resetTime: now + windowMs })
-    return true
-  }
-
-  if (record.count >= maxRequests) {
-    return false
-  }
-
-  record.count += 1
-  return true
-}
-
-// Memory cleanup for rate limit cache (prevents memory leak over long-running instances)
-setInterval(() => {
-  const now = Date.now()
-  rateLimitCache.forEach((value, key) => {
-    if (now > value.resetTime) {
-      rateLimitCache.delete(key)
-    }
-  })
-}, 60 * 1000)
 
 function parseDurationValue(value: unknown): string {
   if (typeof value === "number" && value > 0) {
@@ -633,44 +602,8 @@ async function fetchTikTok(url: string): Promise<TikTokData> {
 // ============== Route Handler ==============
 
 export async function POST(req: Request) {
-  // 1. Check Origin (Anti-CSRF & Anti-Abuse)
-  const origin = req.headers.get("origin") || ""
-  const referer = req.headers.get("referer") || ""
-  const isLocalhost = origin.includes("localhost") || referer.includes("localhost")
-  
-  const allowedDomains = [
-    "fusiontik.vercel.app",
-    "fusiontik.fusionify.biz.id",
-    "fusiontik.fusionifydgital.com",
-    "fusiontik.fusionifydigital.com", // Adding the correctly spelled version just in case
-    "fusiontik.premiumify.my.id"
-  ]
-  
-  const isAllowedDomain = allowedDomains.some(domain => origin.includes(domain) || referer.includes(domain))
-  
-  // Require requests to come from our frontend (if origin/referer is present)
-  if ((origin || referer) && !isLocalhost && !isAllowedDomain) {
-    return NextResponse.json(
-      { error: "Unauthorized cross-origin request" },
-      { status: 403 }
-    )
-  }
-
-  // 2. Rate Limiting (10 requests / minute)
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown"
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      { error: "Too many requests. Please try again in a minute." },
-      { 
-        status: 429,
-        headers: {
-          "Retry-After": "60",
-          "X-RateLimit-Limit": "10",
-          "X-RateLimit-Remaining": "0"
-        }
-      }
-    )
-  }
+  const guardError = await guardApiRequest(req, "tiktok")
+  if (guardError) return guardError
 
   let url: string
 

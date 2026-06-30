@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import path from "path"
+import { guardApiRequest } from "@/shared/lib/api-guard"
 import {
   isMongoConfigured,
   readStatsFromMongo,
@@ -41,7 +42,10 @@ async function writeStatsToFile(stats: Stats): Promise<void> {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const guardError = await guardApiRequest(req, "global-stats-get")
+  if (guardError) return guardError
+
   try {
     if (isMongoConfigured()) {
       try {
@@ -63,7 +67,10 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
+  const guardError = await guardApiRequest(req, "global-stats-post")
+  if (guardError) return guardError
+
   try {
     if (isMongoConfigured()) {
       try {
