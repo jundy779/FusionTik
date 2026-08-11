@@ -106,12 +106,17 @@ export async function enforceRateLimit(
   let result: RateLimitResult
 
   if (limiter) {
-    const upstashResult = await limiter.limit(identifier)
-    result = {
-      success: upstashResult.success,
-      limit: upstashResult.limit,
-      remaining: upstashResult.remaining,
-      reset: upstashResult.reset,
+    try {
+      const upstashResult = await limiter.limit(identifier)
+      result = {
+        success: upstashResult.success,
+        limit: upstashResult.limit,
+        remaining: upstashResult.remaining,
+        reset: upstashResult.reset,
+      }
+    } catch (err) {
+      console.warn("Upstash Redis rate limit failed, falling back to in-memory rate limit:", err)
+      result = memoryRateLimit(bucket, identifier)
     }
   } else {
     result = memoryRateLimit(bucket, identifier)
