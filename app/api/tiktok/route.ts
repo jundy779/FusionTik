@@ -4,68 +4,6 @@ import { guardApiRequest } from "@/shared/lib/api-guard"
 
 // ============== Types ==============
 
-interface YupraAuthor {
-  username?: string
-  nickname?: string
-  avatar?: string
-}
-
-interface YupraMusic {
-  url?: string
-  duration?: string
-  thumbnail?: string
-}
-
-interface YupraResult {
-  id?: string
-  like?: number
-  views?: number
-  share?: number
-  comment?: number
-  region?: string
-  isVideo?: boolean
-  title?: string
-  duration?: string
-  download?: string | string[]
-  author?: YupraAuthor
-  music?: YupraMusic
-}
-
-interface YupraResponse {
-  status?: number
-  content?: string
-  result?: YupraResult
-}
-
-interface TheresavMedia {
-  url?: string
-  quality?: string
-  type?: string
-}
-
-interface TheresavAioResult {
-  title?: string
-  thumbnail?: string
-  duration?: number | string
-  source?: string
-  medias?: TheresavMedia[]
-}
-
-interface TheresavSavetikResult {
-  type?: string
-  title?: string
-  thumbnail?: string
-  hd?: string | null
-  mp4?: string | null
-  mp3?: string | null
-  images?: string[] | null
-}
-
-interface TheresavResponse<T> {
-  status?: boolean
-  result?: T
-}
-
 interface TikWMData {
   code: number
   msg?: string
@@ -118,26 +56,10 @@ interface AlertPayload {
   timestamp: string
 }
 
-// ============== Regex ==============
+// ============== Regex & Helpers ==============
 
 const tiktokRegex =
   /^(https?:\/\/)?(www\.|vm\.|vt\.)?(tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|m\.tiktok\.com)\//
-
-function parseDurationValue(value: unknown): string {
-  if (typeof value === "number" && value > 0) {
-    if (value > 1000) return String(Math.round(value / 1000))
-    return String(value)
-  }
-  if (typeof value !== "string") return ""
-  const match = value.match(/\d+/)
-  return match?.[0] ?? ""
-}
-
-function extractCreatorFromSource(source?: string): string {
-  if (!source) return ""
-  const match = source.match(/@([^/?]+)/)
-  return match?.[1] ?? ""
-}
 
 const REGION_LABELS: Record<string, string> = {
   ID: "Indonesia",
@@ -158,35 +80,6 @@ function formatRegionLabel(region?: string): string | undefined {
   return REGION_LABELS[code] ?? region
 }
 
-function cleanTikTokPostUrl(source?: string): string | undefined {
-  if (!source) return undefined
-  try {
-    const parsed = new URL(source)
-    return `${parsed.origin}${parsed.pathname}`
-  } catch {
-    return undefined
-  }
-}
-
-function parsePostedAtFromSource(source?: string): string | undefined {
-  if (!source) return undefined
-  const match = source.match(/[?&]timestamp=(\d+)/)
-  if (!match) return undefined
-  const timestamp = Number(match[1])
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return undefined
-  return new Date(timestamp * 1000).toISOString()
-}
-
-function buildYupraPostUrl(
-  username: string,
-  postId: string,
-  isVideo: boolean,
-): string | undefined {
-  if (!username || !postId) return undefined
-  const path = isVideo ? "video" : "photo"
-  return `https://www.tiktok.com/@${username}/${path}/${postId}`
-}
-
 function appendPostMeta(response: Record<string, unknown>, result: TikTokData): void {
   if (result.creatorName) response.creatorName = result.creatorName
   if (result.creatorUsername) response.creatorUsername = result.creatorUsername
@@ -199,213 +92,6 @@ function appendPostMeta(response: Record<string, unknown>, result: TikTokData): 
   if (typeof result.comments === "number") response.comments = result.comments
   if (typeof result.shares === "number") response.shares = result.shares
   if (typeof result.favorites === "number") response.favorites = result.favorites
-}
-
-async function fetchTheresav<T>(path: string, url: string): Promise<T> {
-  const apiKey = process.env.THERESAV_API_KEY?.trim()
-  if (!apiKey) {
-    throw new Error("Theresav API key not configured")
-  }
-
-  const baseUrl = process.env.THERESAV_API_URL || "https://api.theresav.biz.id"
-  const apiUrl =
-    `${baseUrl}${path}?apikey=${encodeURIComponent(apiKey)}` +
-    `&url=${encodeURIComponent(url)}`
-
-  const res = await fetch(apiUrl)
-
-  if (!res.ok) {
-    throw new Error(`Theresav API returned ${res.status}: ${res.statusText}`)
-  }
-
-  const json = (await res.json()) as TheresavResponse<T>
-
-  if (!json || json.status !== true || !json.result) {
-    throw new Error("Unexpected response from Theresav API")
-  }
-
-  return json.result
-}
-
-function dedupeSlideImages(urls: string[]): string[] {
-  const seen = new Set<string>()
-  const unique: string[] = []
-
-  for (const url of urls) {
-    const match = url.match(/\/([a-f0-9]{32})~/)
-    const key = match?.[1] ?? url
-    if (seen.has(key)) continue
-    seen.add(key)
-    unique.push(url)
-  }
-
-  return unique
-}
-
-// ============== Provider: Yupra ==============
-
-async function fetchFromYupra(url: string): Promise<TikTokData> {
-  const baseUrl =
-    process.env.YUPRA_TIKTOK_API_URL ||
-    "https://api.yupra.my.id/api/downloader/tiktok"
-  const apiUrl = `${baseUrl}?url=${encodeURIComponent(url)}`
-
-  const res = await fetch(apiUrl)
-
-  if (!res.ok) {
-    throw new Error(`Yupra API returned ${res.status}: ${res.statusText}`)
-  }
-
-  const json = (await res.json()) as YupraResponse
-
-  if (!json || json.status !== 200 || !json.result) {
-    throw new Error(
-      `Unexpected response from Yupra API: ${json?.content ?? "unknown error"}`,
-    )
-  }
-
-  const result = json.result
-  const title = typeof result.title === "string" ? result.title : ""
-
-  const creatorUsername =
-    typeof result.author?.username === "string" ? result.author.username : ""
-  const creatorName =
-    typeof result.author?.nickname === "string" ? result.author.nickname : ""
-
-  const creator = creatorUsername || creatorName
-  const postId = typeof result.id === "string" ? result.id : ""
-  const postUrl = buildYupraPostUrl(
-    creatorUsername,
-    postId,
-    result.isVideo === true,
-  )
-
-  const thumbnail =
-    typeof result.author?.avatar === "string" && result.author.avatar.length > 0
-      ? result.author.avatar
-      : typeof result.music?.thumbnail === "string"
-        ? result.music.thumbnail
-        : ""
-
-  const videos: string[] = []
-  const slide: string[] = []
-
-  if (result.isVideo === true && typeof result.download === "string" && result.download.length > 0) {
-    videos.push(result.download)
-  } else if (Array.isArray(result.download)) {
-    const images = result.download.filter((item): item is string => typeof item === "string")
-    slide.push(...dedupeSlideImages(images))
-  }
-
-  const audio = typeof result.music?.url === "string" ? result.music.url : ""
-
-  const duration =
-    parseDurationValue(result.duration) || parseDurationValue(result.music?.duration)
-
-  return {
-    title,
-    creator,
-    creatorName: creatorName || undefined,
-    creatorUsername: creatorUsername || undefined,
-    postUrl,
-    region: typeof result.region === "string" ? result.region : undefined,
-    regionLabel: formatRegionLabel(result.region),
-    views: typeof result.views === "number" ? result.views : undefined,
-    likes: typeof result.like === "number" ? result.like : undefined,
-    comments: typeof result.comment === "number" ? result.comment : undefined,
-    shares: typeof result.share === "number" ? result.share : undefined,
-    thumbnail,
-    videos,
-    audio,
-    slide,
-    duration,
-  }
-}
-
-// ============== Provider: Theresav AIO ==============
-
-async function fetchFromTheresavAio(url: string): Promise<TikTokData> {
-  const result = await fetchTheresav<TheresavAioResult>("/download/aio", url)
-
-  const title = typeof result.title === "string" ? result.title : ""
-  const creatorUsername = extractCreatorFromSource(result.source)
-  const thumbnail = typeof result.thumbnail === "string" ? result.thumbnail : ""
-
-  const medias = Array.isArray(result.medias) ? result.medias : []
-  const videos: string[] = []
-  const slide: string[] = []
-  let audio = ""
-
-  const hdVideo = medias.find(
-    (media) =>
-      media.type === "video" &&
-      typeof media.url === "string" &&
-      media.quality === "hd_no_watermark",
-  )
-  const noWatermarkVideo = medias.find(
-    (media) =>
-      media.type === "video" &&
-      typeof media.url === "string" &&
-      media.quality !== "watermark",
-  )
-  const anyVideo = medias.find(
-    (media) => media.type === "video" && typeof media.url === "string",
-  )
-
-  const videoUrl = hdVideo?.url || noWatermarkVideo?.url || anyVideo?.url
-  if (videoUrl) videos.push(videoUrl)
-
-  const imageUrls = medias
-    .filter((media) => media.type === "image" && typeof media.url === "string")
-    .map((media) => media.url as string)
-  slide.push(...dedupeSlideImages(imageUrls))
-
-  const audioMedia = medias.find(
-    (media) => media.type === "audio" && typeof media.url === "string",
-  )
-  if (audioMedia?.url) audio = audioMedia.url
-
-  const duration = parseDurationValue(result.duration)
-  const postUrl = cleanTikTokPostUrl(result.source)
-  const postedAt = parsePostedAtFromSource(result.source)
-
-  return {
-    title,
-    creator: creatorUsername,
-    creatorUsername: creatorUsername || undefined,
-    postUrl,
-    postedAt,
-    thumbnail,
-    videos,
-    audio,
-    slide,
-    duration,
-  }
-}
-
-// ============== Provider: Theresav Savetik ==============
-
-async function fetchFromTheresavSavetik(url: string): Promise<TikTokData> {
-  const result = await fetchTheresav<TheresavSavetikResult>("/download/savetik", url)
-
-  const title = typeof result.title === "string" ? result.title : ""
-  const thumbnail = typeof result.thumbnail === "string" ? result.thumbnail : ""
-
-  const videos: string[] = []
-  if (typeof result.hd === "string" && result.hd.length > 0) {
-    videos.push(result.hd)
-  } else if (typeof result.mp4 === "string" && result.mp4.length > 0) {
-    videos.push(result.mp4)
-  }
-
-  const slide: string[] = Array.isArray(result.images)
-    ? result.images.filter((item): item is string => typeof item === "string")
-    : []
-
-  const audio = typeof result.mp3 === "string" ? result.mp3 : ""
-  const duration = ""
-
-  return { title, creator: "", thumbnail, videos, audio, slide, duration }
 }
 
 // ============== Provider: TikWM ==============
@@ -564,39 +250,14 @@ async function notifyProviderFailure(url: string, error: string): Promise<void> 
   }
 }
 
-// ============== Core TikTok Fetch (with fallback) ==============
+// ============== Core TikTok Fetch ==============
 
 async function fetchTikTok(url: string): Promise<TikTokData> {
   if (!tiktokRegex.test(url)) {
     throw new Error("Invalid URL")
   }
 
-  let firstError: unknown
-
-  try {
-    return await fetchFromYupra(url)
-  } catch (err) {
-    firstError = err
-  }
-
-  try {
-    return await fetchFromTheresavAio(url)
-  } catch {
-    // Theresav AIO failed — try Savetik
-  }
-
-  try {
-    return await fetchFromTheresavSavetik(url)
-  } catch {
-    // Savetik failed — try TikWM
-  }
-
-  try {
-    return await fetchFromTikWM(url)
-  } catch {
-    if (firstError instanceof Error) throw firstError
-    throw new Error("All providers failed")
-  }
+  return await fetchFromTikWM(url)
 }
 
 // ============== Route Handler ==============

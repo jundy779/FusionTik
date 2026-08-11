@@ -218,49 +218,29 @@
     }
   }
 
-  /* Text Gradient */
+  /* Solid Branding Typography */
   .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%);
+    @apply text-foreground font-bold;
   }
 
-  /* Badge Glow */
+  /* Solid Badge */
   .badge-glow {
-    @apply relative;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    @apply relative border border-blue-500/20 bg-blue-500/10 text-blue-400;
   }
 
-  /* Hero Gradient Text */
+  /* Solid Hero Branding */
   .hero-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(to right, #60a5fa, #34d399, #a78bfa);
-    background-size: 200% auto;
-    animation: text-gradient 3s linear infinite;
-  }
-
-  @keyframes text-gradient {
-    0% {
-      background-position: 0% center;
-    }
-
-    100% {
-      background-position: 200% center;
-    }
+    @apply text-blue-500 dark:text-blue-400 font-extrabold;
   }
 
   /* Modern Input Focus */
   .input-glow:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
   }
 
   /* Stats Card Hover */
   .stats-hover {
-    @apply transition-all duration-300;
-  }
-
-  .stats-hover:hover {
-    @apply scale-105;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    @apply transition-colors duration-200;
   }
 }
 
@@ -282,5 +262,17 @@
   /* Backdrop blur utilities */
   .backdrop-blur-3xl {
     backdrop-filter: blur(64px);
+  }
+}
+
+/* Reduced motion preference fallback */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

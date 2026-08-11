@@ -2,34 +2,34 @@ import { siteConfig } from "@/lib/site-config"
 
 export const faqItems = [
   {
-    question: "Is FusionTik free to use?",
+    question: "Apa itu FusionTik TikTok Downloader?",
     answer:
-      "Yes. FusionTik is a free TikTok downloader with no hidden fees, subscriptions, or login required.",
+      "FusionTik adalah layanan web gratis untuk mendownload video TikTok tanpa watermark (MP4), mengunduh foto TikTok (Photo Mode), dan mengekstrak audio MP3 berkecepatan tinggi tanpa perlu instalasi aplikasi atau login.",
   },
   {
-    question: "Can I download TikTok videos without watermark?",
+    question: "Apakah FusionTik benar-benar gratis dan tanpa watermark?",
     answer:
-      "Yes. FusionTik downloads TikTok videos without the TikTok watermark in MP4 format when the source video is available.",
+      "Ya, FusionTik 100% gratis tanpa biaya tersembunyi. Semua video TikTok yang diunduh akan otomatis bersih dari watermark logo TikTok.",
   },
   {
-    question: "What formats does FusionTik support?",
+    question: "Format file apa saja yang didukung oleh FusionTik?",
     answer:
-      "FusionTik supports MP4 video downloads, MP3 audio extraction, and JPG/PNG image downloads for TikTok Photo Mode posts.",
+      "FusionTik mendukung format MP4 (video HD tanpa watermark), MP3 (audio musik TikTok), serta gambar JPG/PNG kualitas asli untuk postingan TikTok Photo Mode.",
   },
   {
-    question: "Does FusionTik store my downloads?",
+    question: "Bagaimana cara download video TikTok tanpa watermark di FusionTik?",
     answer:
-      "No. FusionTik does not store downloaded files on its servers. Media is fetched directly from TikTok CDN. Download history is saved locally in your browser only.",
+      "Cukup salin link postingan TikTok (vt.tiktok.com atau tiktok.com/@user/video/...), tempelkan ke kolom input di FusionTik, klik tombol Download, lalu pilih tombol UNDUH MP4 atau UNDUH MP3.",
   },
   {
-    question: "How do I download a TikTok video with FusionTik?",
+    question: "Apakah FusionTik menyimpan video atau riwayat download saya?",
     answer:
-      "Copy the TikTok video or photo link, paste it into FusionTik, click Download, then choose MP4, MP3, or image download.",
+      "Tidak. FusionTik tidak menyimpan file video di server. Semua file langsung diunduh dari CDN resmi TikTok. Riwayat download Anda disimpan secara privat di penyimpanan lokal browser Anda sendiri.",
   },
   {
-    question: "Is it legal to download TikTok videos?",
+    question: "Bisakah FusionTik digunakan di HP Android dan iPhone (iOS)?",
     answer:
-      "Downloading for personal offline use is generally acceptable, but you must respect copyright and the original creator. Do not redistribute or use content commercially without permission.",
+      "Bisa. FusionTik kompatibel dengan semua perangkat (Android, iPhone/iPad, Windows, macOS, Linux) melalui browser web seperti Chrome, Safari, Firefox, dan Edge.",
   },
 ] as const
 
@@ -54,6 +54,7 @@ export function buildOrganizationSchema() {
     "@type": "Organization",
     name: siteConfig.name,
     url: siteConfig.url,
+    logo: `${siteConfig.url}/placeholder-logo.svg`,
     description: siteConfig.description,
     sameAs: [],
   }
@@ -66,14 +67,10 @@ export function buildWebSiteSchema() {
     name: siteConfig.name,
     url: siteConfig.url,
     description: siteConfig.description,
-    inLanguage: ["en", "id"],
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${siteConfig.url}/?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
+    inLanguage: ["id-ID", "en-US"],
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.author,
     },
   }
 }
@@ -81,11 +78,11 @@ export function buildWebSiteSchema() {
 export function buildWebApplicationSchema() {
   return {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     name: siteConfig.name,
     url: siteConfig.url,
-    applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Web Browser",
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "All (Android, iOS, Windows, macOS, Linux)",
     offers: {
       "@type": "Offer",
       price: "0",
@@ -93,13 +90,13 @@ export function buildWebApplicationSchema() {
     },
     description: siteConfig.description,
     featureList: [
-      "Download TikTok videos without watermark (MP4)",
-      "Extract TikTok audio (MP3)",
-      "Download TikTok Photo Mode images",
-      "No login required",
-      "Free to use",
+      "Download video TikTok tanpa watermark (MP4 HD)",
+      "Ekstrak musik audio TikTok (MP3)",
+      "Download gambar TikTok Photo Mode",
+      "Tanpa login dan 100% gratis",
+      "Kompatibel HP Android & iPhone",
     ],
-    browserRequirements: "Requires JavaScript",
+    browserRequirements: "Requires JavaScript and HTML5",
   }
 }
 
@@ -107,33 +104,48 @@ export function buildHowToSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: "How to download TikTok videos without watermark using FusionTik",
+    name: "Cara Download Video TikTok Tanpa Watermark di FusionTik",
     description:
-      "Step-by-step guide to download TikTok videos, photos, and audio for free with FusionTik.",
+      "Panduan langkah demi langkah mengunduh video, gambar, dan audio MP3 TikTok secara gratis dengan FusionTik.",
     step: [
       {
         "@type": "HowToStep",
         position: 1,
-        name: "Copy TikTok link",
-        text: "Open TikTok and copy the share link of the video or photo post you want to download.",
+        name: "Salin Link TikTok",
+        text: "Buka aplikasi TikTok lalu salin link video atau foto (Photo Mode) yang ingin diunduh.",
       },
       {
         "@type": "HowToStep",
         position: 2,
-        name: "Paste into FusionTik",
-        text: "Go to FusionTik and paste the TikTok URL into the input field.",
+        name: "Tempelkan ke FusionTik",
+        text: "Buka website FusionTik (fusiontik.vercel.app) lalu paste link tersebut ke kolom input.",
       },
       {
         "@type": "HowToStep",
         position: 3,
-        name: "Click Download",
-        text: "Click the Download button and wait for FusionTik to process the link.",
+        name: "Klik Tombol Download",
+        text: "Tekan tombol Download untuk memproses konten secara cepat.",
       },
       {
         "@type": "HowToStep",
         position: 4,
-        name: "Save your file",
-        text: "Choose MP4 for video, MP3 for audio, or download all images for Photo Mode posts.",
+        name: "Simpan File Ke Perangkat",
+        text: "Pilih opsi UNDUH MP4 (video tanpa watermark), UNDUH MP3 (audio), atau UNDUH GAMBAR.",
+      },
+    ],
+  }
+}
+
+export function buildBreadcrumbSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteConfig.url,
       },
     ],
   }
@@ -146,5 +158,6 @@ export function buildGlobalStructuredData() {
     buildWebApplicationSchema(),
     buildHowToSchema(),
     buildFaqSchema(),
+    buildBreadcrumbSchema(),
   ]
 }

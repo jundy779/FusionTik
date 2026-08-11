@@ -9,10 +9,18 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/private/"],
+        disallow: ["/api/"],
       },
       {
         userAgent: "Googlebot",
+        allow: "/",
+      },
+      {
+        userAgent: "GoogleOther",
+        allow: "/",
+      },
+      {
+        userAgent: "Google-Extended",
         allow: "/",
       },
       {
@@ -32,7 +40,19 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
       },
       {
+        userAgent: "Claude-Web",
+        allow: "/",
+      },
+      {
         userAgent: "PerplexityBot",
+        allow: "/",
+      },
+      {
+        userAgent: "Bytespider",
+        allow: "/",
+      },
+      {
+        userAgent: "Meta-ExternalAgent",
         allow: "/",
       },
     ],

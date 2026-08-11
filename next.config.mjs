@@ -3,6 +3,7 @@ import { securityHeaders } from './config/security-headers.mjs'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  devIndicators: false,
   typescript: {
     ignoreBuildErrors: true,
   },

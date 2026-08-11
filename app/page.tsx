@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Download, Info, Loader2, AlertCircle, Globe, ClipboardPaste } from "lucide-react"
+import { Download, Info, Loader2, AlertCircle, Globe, ClipboardPaste, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,10 +19,13 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Navbar } from "@/components/navbar"
 import { useToast } from "@/hooks/use-toast"
+import { DownloadSkeleton } from "@/modules/downloader/components/DownloadSkeleton"
+import { InsightsCard } from "@/modules/downloader/components/InsightsCard"
 import { ResultCard } from "@/modules/downloader/components/ResultCard"
 import { StatsCard } from "@/modules/downloader/components/StatsCard"
 import { VideoPreview } from "@/modules/downloader/components/VideoPreview"
 import { useDownloadHistory, type DownloadHistoryItem } from "@/modules/downloader/hooks/useDownloadHistory"
+import { useDownloadInsights } from "@/modules/downloader/hooks/useDownloadInsights"
 import { useDownloadStats } from "@/modules/downloader/hooks/useDownloadStats"
 import { useGlobalStats } from "@/modules/downloader/hooks/useGlobalStats"
 import { downloadWithProgress, generateFilename } from "@/modules/downloader/services/downloadClient"
@@ -108,18 +111,6 @@ async function fetchTikTokData(url: string): Promise<TikTokApiResponse> {
   return data
 }
 
-// ============== Animation variants ==============
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-}
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100 } },
-}
-
 // ============== Page Component ==============
 
 export default function TikTokDownloader() {
@@ -132,6 +123,7 @@ export default function TikTokDownloader() {
   const { history, addToHistory, removeFromHistory, clearHistory } = useDownloadHistory()
   const { resetStats } = useDownloadStats()
   const { globalStats, incrementGlobalCounter } = useGlobalStats()
+  const insights = useDownloadInsights(history)
 
   // ---- Handlers ----
 
@@ -256,127 +248,112 @@ export default function TikTokDownloader() {
       <main className="container mx-auto px-4 py-8">
         {/* Hero / Download Section */}
         {!currentResult && (
-          <motion.section
-            id="download"
-            className="mb-16"
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-          >
-            <motion.div variants={itemVariants} className="text-center mb-12">
-              <motion.h2
-                className="text-5xl md:text-6xl font-extrabold mb-6 hero-gradient"
-                animate={{ backgroundPosition: ["0% center", "200% center"] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              >
+          <section id="download" className="mb-16">
+            {/* Hero Entrance Header */}
+            <motion.div
+              className="text-center mb-10"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-blue-600 dark:text-blue-400">
                 FusionTik
-              </motion.h2>
-              <h3 className="text-2xl md:text-3xl font-semibold text-foreground/90 mb-4">
+              </h2>
+              <h3 className="text-xl md:text-2xl font-semibold text-foreground/90 mb-3">
                 TikTok Downloader Tanpa Watermark (Video, Foto, MP3)
               </h3>
-              <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
+              <p className="text-muted-foreground max-w-2xl mx-auto mb-6 text-base">
                 Download video TikTok tanpa watermark, simpan Photo Mode jadi gambar, dan ekstrak
                 audio MP3 secara gratis dengan kualitas tinggi langsung dari browser kamu.
               </p>
-              <motion.div
-                className="inline-block"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <div className="gradient-bg text-white px-8 py-4 rounded-2xl glow shimmer">
-                  <p className="text-xl font-bold inline-flex items-center justify-center gap-2">
-                    <Globe className="h-5 w-5 shrink-0" />
-                    {globalStats.totalDownloads.toLocaleString()} Downloads Worldwide
-                  </p>
-                  <p className="text-sm opacity-90 mt-1">Trusted by users globally</p>
-                </div>
-              </motion.div>
+              <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 px-5 py-2.5 rounded-xl font-medium text-sm">
+                <Globe className="h-4 w-4 shrink-0" />
+                <span>{globalStats.totalDownloads.toLocaleString()} Downloads Worldwide</span>
+              </div>
             </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <Card className="glass-card animated-border overflow-hidden">
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-2xl text-gradient">Enter TikTok URL</CardTitle>
-                  <CardDescription className="text-base">
-                    Paste the link to the TikTok video or image you want to download
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <form onSubmit={handleSubmit} className="flex gap-3 flex-col sm:flex-row">
-                    <div className="flex flex-1 gap-3">
-                      <Input
-                        type="text"
-                        placeholder="https://www.tiktok.com/@username/video/..."
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        className="flex-1 h-12 text-base bg-background/50 border-white/20 focus:border-blue-500 input-glow transition-all"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handlePasteClick}
-                        className="h-12 px-6 border-white/20 hover:bg-white/10 transition-all"
-                      >
-                        <ClipboardPaste className="mr-2 h-4 w-4" />
-                        Paste
-                      </Button>
-                    </div>
+            {/* Core Action: Input Form Card (Instant - NO Motion Delay) */}
+            <Card className="border border-border bg-card shadow-lg overflow-hidden max-w-3xl mx-auto">
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="text-xl font-bold text-foreground">Enter TikTok URL</CardTitle>
+                <CardDescription className="text-sm">
+                  Paste the link to the TikTok video or image you want to download
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <form onSubmit={handleSubmit} className="flex gap-3 flex-col sm:flex-row">
+                  <div className="flex flex-1 gap-3">
+                    <Input
+                      type="text"
+                      placeholder="https://www.tiktok.com/@username/video/..."
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="flex-1 h-12 text-base bg-background border-input focus:border-blue-500 transition-colors"
+                    />
                     <Button
-                      type="submit"
-                      disabled={isLoading || !url}
-                      className="h-12 px-8 text-base font-semibold gradient-bg glow-hover transition-all duration-300"
+                      type="button"
+                      variant="outline"
+                      onClick={handlePasteClick}
+                      className="h-12 px-5 transition-colors"
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Processing
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-5 w-5" />
-                          Download
-                        </>
-                      )}
+                      <ClipboardPaste className="mr-2 h-4 w-4" />
+                      Paste
                     </Button>
-                  </form>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={isLoading || !url}
+                    className="h-12 px-8 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-5 w-5" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </form>
 
-                  {error && (
-                    <Alert variant="destructive" className="mt-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-                <CardFooter className="text-sm text-muted-foreground border-t border-white/10 pt-4 justify-center">
-                  By using our service, you agree to our Terms of Service and Privacy Policy
-                </CardFooter>
-              </Card>
-            </motion.div>
-          </motion.section>
+                {error && (
+                  <Alert variant="destructive" className="mt-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+              <CardFooter className="text-xs text-muted-foreground border-t border-border/50 pt-3 justify-center">
+                By using our service, you agree to our Terms of Service and Privacy Policy
+              </CardFooter>
+            </Card>
+          </section>
         )}
 
         {/* Loading */}
         {isLoading && (
-          <motion.div
-            className="flex flex-col items-center justify-center py-20"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 gradient-bg rounded-full blur-xl opacity-50 animate-pulse" />
-              <Loader2 className="relative h-16 w-16 animate-spin text-blue-500" />
+          <div className="py-8">
+            <div className="flex items-center justify-center gap-2 mb-6 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Processing your download, this may take a few moments...</span>
             </div>
-            <h3 className="text-2xl font-semibold mt-8 text-gradient">
-              Processing your download...
-            </h3>
-            <p className="text-muted-foreground mt-3 text-lg">This may take a few moments</p>
-          </motion.div>
+            <DownloadSkeleton />
+          </div>
         )}
 
         {/* Result */}
         {currentResult && (
-          <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8">
+          <section className="py-8">
+            <div className="flex justify-center mb-4">
+              <div className="inline-flex items-center gap-2 bg-green-500/10 text-green-500 border border-green-500/30 rounded-full px-4 py-1.5 text-sm font-medium">
+                <CheckCircle2 className="h-4 w-4" />
+                Ready to download
+              </div>
+            </div>
             <VideoPreview
               result={currentResult}
               onDownloadVideo={() => {
@@ -402,22 +379,22 @@ export default function TikTokDownloader() {
               <Button
                 variant="outline"
                 onClick={handleDownloadAnother}
-                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                className="bg-card hover:bg-accent text-foreground border-border"
               >
                 Download Video Lain
               </Button>
             </div>
-          </motion.section>
+          </section>
         )}
 
-        {/* About Section */}
+        {/* About Section (Subtle Scroll Reveal OK) */}
         {!currentResult && (
           <motion.section
             id="about"
             className="mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
             viewport={{ once: true }}
           >
             <div className="text-center mb-8">
@@ -429,86 +406,134 @@ export default function TikTokDownloader() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Info className="h-5 w-5 text-blue-500" />
-                      How It Works
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-4">
-                      Dengan FusionTik kamu bisa menyimpan video TikTok, gambar, dan audio tanpa
-                      watermark langsung ke perangkat kamu. Cara pakainya sangat mudah:
-                    </p>
-                    <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                      <li>Copy link video atau foto TikTok yang ingin kamu download</li>
-                      <li>Paste link tersebut ke kolom input di atas</li>
-                      <li>Klik tombol "Download"</li>
-                      <li>Pilih format yang kamu mau (video MP4, audio MP3, atau gambar)</li>
-                      <li>Simpan hasil download ke perangkat kamu</li>
-                    </ol>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Info className="h-5 w-5 text-blue-500" />
+                    How It Works
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-muted-foreground">
+                    Dengan FusionTik kamu bisa menyimpan video TikTok, gambar, dan audio tanpa
+                    watermark langsung ke perangkat kamu. Cara pakainya sangat mudah:
+                  </p>
+                  <ol className="space-y-3 text-muted-foreground">
+                    <li className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs font-bold">1</span>
+                      <span>Copy link video atau foto TikTok yang ingin kamu download</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs font-bold">2</span>
+                      <span>Paste link tersebut ke kolom input di atas</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs font-bold">3</span>
+                      <span>Klik tombol "Download"</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs font-bold">4</span>
+                      <span>Pilih format yang kamu mau (video MP4, audio MP3, atau gambar)</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 text-xs font-bold">5</span>
+                      <span>Simpan hasil download ke perangkat kamu</span>
+                    </li>
+                  </ol>
+                </CardContent>
+              </Card>
 
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Info className="h-5 w-5 text-blue-500" />
-                      Features
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-blue-600">Free</Badge>
-                        <span>Layanan gratis 100% tanpa biaya tersembunyi</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-blue-600">No Watermarks</Badge>
-                        <span>Download video TikTok tanpa watermark TikTok</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-blue-600">High Quality</Badge>
-                        <span>Download video dan gambar dengan kualitas setinggi mungkin</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-blue-600">Audio Extraction</Badge>
-                        <span>Ekstrak dan download hanya audio dari video TikTok (MP3)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Badge className="mt-1 bg-blue-600">Download History</Badge>
-                        <span>
-                          Lihat riwayat konten yang sudah kamu download dengan fitur history
-                        </span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Info className="h-5 w-5 text-blue-500" />
+                    Features
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-2">
+                      <Badge className="mt-1 bg-blue-600 hover:bg-blue-700">Free</Badge>
+                      <span>Layanan gratis 100% tanpa biaya tersembunyi</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="mt-1 bg-blue-600 hover:bg-blue-700">No Watermarks</Badge>
+                      <span>Download video TikTok tanpa watermark TikTok</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="mt-1 bg-blue-600 hover:bg-blue-700">High Quality</Badge>
+                      <span>Download video dan gambar dengan kualitas setinggi mungkin</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="mt-1 bg-blue-600 hover:bg-blue-700">Audio Extraction</Badge>
+                      <span>Ekstrak dan download hanya audio dari video TikTok (MP3)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Badge className="mt-1 bg-blue-600 hover:bg-blue-700">Download History</Badge>
+                      <span>
+                        Lihat riwayat konten yang sudah kamu download dengan fitur history
+                      </span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* GEO Comparison Table for AI Search & Citations */}
+            <div className="mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Mengapa Memilih FusionTik Downloader?</CardTitle>
+                  <CardDescription>
+                    Perbandingan keunggulan FusionTik dengan downloader TikTok biasa lainnya
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/50">
+                        <th className="p-3 font-semibold">Fitur / Layanan</th>
+                        <th className="p-3 font-semibold text-blue-500">FusionTik Downloader</th>
+                        <th className="p-3 font-semibold text-muted-foreground">Downloader Lain</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      <tr>
+                        <td className="p-3 font-medium">Video Tanpa Watermark (HD MP4)</td>
+                        <td className="p-3 text-green-500 font-medium">100% Gratis & Bersih</td>
+                        <td className="p-3 text-muted-foreground">Sering ada logo/iklan</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Download TikTok Photo Mode (Slide Foto)</td>
+                        <td className="p-3 text-green-500 font-medium">Mendukung semua slide JPG/PNG</td>
+                        <td className="p-3 text-muted-foreground">Banyak yang tidak mendukung</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Ekstraksi Musik Audio (MP3)</td>
+                        <td className="p-3 text-green-500 font-medium">Kualitas audio original tertinggi</td>
+                        <td className="p-3 text-muted-foreground">Terbatas / Kompresi rendah</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Privasi & Keamanan Data</td>
+                        <td className="p-3 text-green-500 font-medium">0% Simpan File di Server</td>
+                        <td className="p-3 text-muted-foreground">Simpan riwayat di server</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-medium">Kecepatan & Tanpa Login</td>
+                        <td className="p-3 text-green-500 font-medium">Instan, Tanpa Akun / Pendaftaran</td>
+                        <td className="p-3 text-muted-foreground">Perlu login / captcha rumit</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </CardContent>
+              </Card>
             </div>
           </motion.section>
         )}
 
-        {/* Download History */}
+        {/* Download History (Instant Data Section - NO Motion Delay) */}
         {!currentResult && (
-          <motion.section
-            id="history"
-            className="mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
+          <section id="history" className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Download History</h2>
               <p className="text-muted-foreground">Your downloaded TikTok videos and images</p>
@@ -548,19 +573,12 @@ export default function TikTokDownloader() {
                 You have no download history yet.
               </p>
             )}
-          </motion.section>
+          </section>
         )}
 
-        {/* Personal Stats */}
+        {/* Personal Stats (Instant Data Section - NO Motion Delay) */}
         {!currentResult && (
-          <motion.section
-            id="stats"
-            className="mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
+          <section id="stats" className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Your Personal Download Statistics</h2>
               <p className="text-muted-foreground">
@@ -579,17 +597,25 @@ export default function TikTokDownloader() {
                 })
               }}
             />
-          </motion.section>
+          </section>
         )}
 
-        {/* FAQ Section */}
+        {/* Download Insights (Instant Data Section - NO Motion Delay) */}
         {!currentResult && (
-          <motion.section
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
+          <section id="insights" className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-2">Download Insights</h2>
+              <p className="text-muted-foreground">
+                A breakdown of what you download, from whom, and where it's from
+              </p>
+            </div>
+            <InsightsCard insights={insights} />
+          </section>
+        )}
+
+        {/* FAQ Section (Instant Section - NO Motion Delay) */}
+        {!currentResult && (
+          <section id="faq" className="mb-16">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold mb-2">Frequently Asked Questions</h2>
               <p className="text-muted-foreground">
@@ -649,23 +675,18 @@ export default function TikTokDownloader() {
                 </CardContent>
               </Card>
             </div>
-          </motion.section>
+          </section>
         )}
       </main>
 
       {/* Footer */}
-      <motion.footer
-        className="border-t py-8 mt-16"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-      >
+      <footer className="border-t py-8 mt-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
               <div className="flex items-center gap-2">
                 <Download className="h-5 w-5 text-blue-500" />
-                <span className="font-bold text-xl bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+                <span className="font-bold text-xl text-blue-600 dark:text-blue-400">
                   FusionTik
                 </span>
               </div>
@@ -691,6 +712,11 @@ export default function TikTokDownloader() {
                   <li>
                     <a href="#stats" className="hover:text-blue-400 transition-colors">
                       Stats
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#insights" className="hover:text-blue-400 transition-colors">
+                      Insights
                     </a>
                   </li>
                   <li>
@@ -747,7 +773,7 @@ export default function TikTokDownloader() {
             </p>
           </div>
         </div>
-      </motion.footer>
+      </footer>
     </div>
   )
 }

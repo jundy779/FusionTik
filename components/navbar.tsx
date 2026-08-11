@@ -25,7 +25,7 @@ export function Navbar() {
             <Download size={24} />
           </div>
           <Link href="/" className="flex items-center gap-1">
-            <span className="font-bold text-xl bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+            <span className="font-bold text-xl text-blue-600 dark:text-blue-400">
               FusionTik
             </span>
           </Link>

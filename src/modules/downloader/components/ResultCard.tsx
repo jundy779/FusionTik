@@ -48,12 +48,7 @@ export function ResultCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="h-full"
-    >
+    <div className="h-full">
       <Card className="overflow-hidden h-full flex flex-col">
         <CardContent className="flex-grow p-4">
           <div className="flex flex-col gap-2">
@@ -98,7 +93,7 @@ export function ResultCard({
                   <TooltipTrigger asChild>
                     <Button
                       onClick={onDownloadVideo}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Video
@@ -116,7 +111,7 @@ export function ResultCard({
                 <TooltipTrigger asChild>
                   <Button
                     onClick={onDownloadVideo}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors"
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Image
@@ -168,6 +163,6 @@ export function ResultCard({
           )}
         </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   )
 }

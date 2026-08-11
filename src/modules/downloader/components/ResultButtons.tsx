@@ -112,7 +112,7 @@ export function ResultButtons({
       {isImage ? (
         <Button
           size="lg"
-          className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 transition-colors"
           onClick={handleDownloadImages}
         >
           <Download className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function ResultButtons({
         <>
           <Button
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 transition-colors"
             onClick={() => handleDownloadVideo(videoUrl, "video")}
           >
             <Download className="h-5 w-5" />
@@ -130,7 +130,7 @@ export function ResultButtons({
           </Button>
           <Button
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 transition-colors"
             onClick={() => handleDownloadVideo(videoHdUrl ?? videoUrl, "video (HD)")}
           >
             <Download className="h-5 w-5" />
@@ -142,7 +142,7 @@ export function ResultButtons({
       {audioUrl && (
         <Button
           size="lg"
-          className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-6 rounded-md flex items-center justify-center gap-2 transition-colors"
           onClick={handleDownloadAudio}
         >
           <Download className="h-5 w-5" />
