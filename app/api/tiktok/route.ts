@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { guardApiRequest } from "@/shared/lib/api-guard"
 
+// Extend serverless execution limit on Vercel
+export const maxDuration = 60
+
 // ============== Types ==============
 
 interface TikWMData {
@@ -97,72 +100,87 @@ function appendPostMeta(response: Record<string, unknown>, result: TikTokData): 
 // ============== Provider: TikWM ==============
 
 async function fetchFromTikWM(url: string): Promise<TikTokData> {
-  const baseUrl = process.env.TIKWM_API_URL || "https://tikwm.com/api/"
+  const endpoints = [
+    process.env.TIKWM_API_URL || "https://tikwm.com/api/",
+    "https://www.tikwm.com/api/",
+  ]
 
   const body = new URLSearchParams()
   body.set("url", url)
   body.set("hd", "1")
 
-  const res = await fetch(baseUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      Cookie: "current_language=en",
-      "User-Agent":
-        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
-    },
-    body: body.toString(),
-  })
+  let lastError: Error | null = null
 
-  if (!res.ok) {
-    throw new Error(`TikWM API returned ${res.status}: ${res.statusText}`)
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Cookie: "current_language=en",
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36",
+        },
+        body: body.toString(),
+        signal: AbortSignal.timeout(12000),
+      })
+
+      if (!res.ok) {
+        lastError = new Error(`TikWM API (${endpoint}) returned ${res.status}: ${res.statusText}`)
+        continue
+      }
+
+      const json = (await res.json()) as TikWMData
+
+      if (!json || json.code !== 0 || !json.data) {
+        lastError = new Error(`TikWM API error: ${json?.msg ?? "unknown error"}`)
+        continue
+      }
+
+      const data = json.data
+
+      const title = typeof data.title === "string" ? data.title : ""
+
+      const creator =
+        typeof data.author?.unique_id === "string"
+          ? data.author.unique_id
+          : typeof data.author?.nickname === "string"
+            ? data.author.nickname
+            : ""
+
+      const thumbnail =
+        typeof data.origin_cover === "string" && data.origin_cover.length > 0
+          ? data.origin_cover
+          : typeof data.cover === "string"
+            ? data.cover
+            : ""
+
+      const videos: string[] = []
+      if (typeof data.hdplay === "string" && data.hdplay.length > 0) {
+        videos.push(data.hdplay)
+      }
+      if (typeof data.play === "string" && data.play.length > 0 && data.play !== data.hdplay) {
+        videos.push(data.play)
+      }
+      if (videos.length === 0 && typeof data.wmplay === "string" && data.wmplay.length > 0) {
+        videos.push(data.wmplay)
+      }
+
+      const audio = typeof data.music === "string" ? data.music : ""
+
+      const slide: string[] = Array.isArray(data.images)
+        ? data.images.filter((item): item is string => typeof item === "string")
+        : []
+
+      const duration = typeof data.duration === "number" ? String(data.duration) : ""
+
+      return { title, creator, thumbnail, videos, audio, slide, duration }
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+    }
   }
 
-  const json = (await res.json()) as TikWMData
-
-  if (!json || json.code !== 0 || !json.data) {
-    throw new Error(`Unexpected response from TikWM API: ${json.msg ?? "unknown error"}`)
-  }
-
-  const data = json.data
-
-  const title = typeof data.title === "string" ? data.title : ""
-
-  const creator =
-    typeof data.author?.unique_id === "string"
-      ? data.author.unique_id
-      : typeof data.author?.nickname === "string"
-        ? data.author.nickname
-        : ""
-
-  const thumbnail =
-    typeof data.origin_cover === "string" && data.origin_cover.length > 0
-      ? data.origin_cover
-      : typeof data.cover === "string"
-        ? data.cover
-        : ""
-
-  const videos: string[] = []
-  // Priority: hdplay (HD no-watermark) → play (SD no-watermark) → wmplay (watermark)
-  if (typeof data.hdplay === "string" && data.hdplay.length > 0) {
-    videos.push(data.hdplay)
-  }
-  if (typeof data.play === "string" && data.play.length > 0 && data.play !== data.hdplay) {
-    videos.push(data.play)
-  }
-  if (videos.length === 0 && typeof data.wmplay === "string" && data.wmplay.length > 0) {
-    videos.push(data.wmplay)
-  }
-
-  const audio = typeof data.music === "string" ? data.music : ""
-
-  const slide: string[] = Array.isArray(data.images)
-    ? data.images.filter((item): item is string => typeof item === "string")
-    : []
-
-  const duration = typeof data.duration === "number" ? String(data.duration) : ""
-
-  return { title, creator, thumbnail, videos, audio, slide, duration }
+  throw lastError ?? new Error("Gagal mengambil data dari TikTok API")
 }
 
 // ============== Alert / Notification ==============

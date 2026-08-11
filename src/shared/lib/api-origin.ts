@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 const DEFAULT_ALLOWED_DOMAINS = [
   "fusiontik.vercel.app",
+  "vercel.app",
   "fusiontik.fusionify.biz.id",
   "fusiontik.fusionifydgital.com",
   "fusiontik.fusionifydigital.com",

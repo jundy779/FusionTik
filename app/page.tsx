@@ -86,26 +86,46 @@ interface TikTokResult {
 // ============== API helper ==============
 
 async function fetchTikTokData(url: string): Promise<TikTokApiResponse> {
-  const res = await fetch("/api/tiktok", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  })
+  let res: Response
+  try {
+    res = await fetch("/api/tiktok", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    })
+  } catch {
+    throw new Error("Gagal terhubung ke server. Periksa koneksi internet Anda.")
+  }
 
-  const data = (await res.json()) as TikTokApiResponse
+  const responseText = await res.text()
+  let data: TikTokApiResponse
+
+  try {
+    data = JSON.parse(responseText) as TikTokApiResponse
+  } catch {
+    if (res.status === 403) {
+      throw new Error("Permintaan ditolak oleh server (Akses 403 Forbidden).")
+    } else if (res.status === 429) {
+      throw new Error("Batas download terlampaui. Silakan tunggu beberapa saat lagi.")
+    } else {
+      throw new Error("Server mengalami gangguan saat memproses link TikTok ini. Silakan coba lagi.")
+    }
+  }
 
   if (!res.ok || data.error) {
-    throw new Error(data.error ?? `Server returned ${res.status}: ${res.statusText}`)
+    throw new Error(
+      data.error ?? `Gagal memproses link TikTok (${res.status}). Silakan coba lagi.`,
+    )
   }
 
   if (data.type === "video") {
-    if (!data.video) throw new Error("No video URL found in the response")
+    if (!data.video) throw new Error("Video TikTok tidak ditemukan atau berstatus privat.")
   } else if (data.type === "image") {
     if (!Array.isArray(data.images) || data.images.length === 0) {
-      throw new Error("No images found in the response")
+      throw new Error("Gambar Photo Mode TikTok tidak ditemukan.")
     }
   } else {
-    throw new Error("Unknown content type returned from API")
+    throw new Error("Format konten TikTok tidak didukung.")
   }
 
   return data
