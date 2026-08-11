@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Download, Info, Loader2, AlertCircle, Globe, ClipboardPaste, CheckCircle2 } from "lucide-react"
+import { Download, Info, Loader2, AlertCircle, Globe, ClipboardPaste, CheckCircle2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -138,12 +138,39 @@ export default function TikTokDownloader() {
   const [isLoading, setIsLoading] = useState(false)
   const [currentResult, setCurrentResult] = useState<TikTokResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [detectedClipboardUrl, setDetectedClipboardUrl] = useState<string | null>(null)
 
   const { toast } = useToast()
   const { history, addToHistory, removeFromHistory, clearHistory } = useDownloadHistory()
   const { resetStats } = useDownloadStats()
   const { globalStats, incrementGlobalCounter } = useGlobalStats()
   const insights = useDownloadInsights(history)
+
+  // ---- Auto-detect clipboard TikTok URL on mount & focus ----
+  useEffect(() => {
+    const checkClipboard = async () => {
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+          const text = await navigator.clipboard.readText()
+          if (
+            text &&
+            /^(https?:\/\/)?(www\.|vm\.|vt\.)?(tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com|m\.tiktok\.com)\//.test(
+              text.trim(),
+            ) &&
+            text.trim() !== url
+          ) {
+            setDetectedClipboardUrl(text.trim())
+          }
+        }
+      } catch {
+        // Permission denied or clipboard unreadable automatically
+      }
+    }
+
+    checkClipboard()
+    window.addEventListener("focus", checkClipboard)
+    return () => window.removeEventListener("focus", checkClipboard)
+  }, [url])
 
   // ---- Handlers ----
 
@@ -338,6 +365,26 @@ export default function TikTokDownloader() {
                     )}
                   </Button>
                 </form>
+
+                {detectedClipboardUrl && (
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between gap-3 text-sm">
+                    <div className="flex items-center gap-2 truncate text-blue-600 dark:text-blue-400 font-medium">
+                      <Sparkles className="h-4 w-4 shrink-0 text-blue-500" />
+                      <span className="truncate">Link TikTok terdeteksi di clipboard: {detectedClipboardUrl}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setUrl(detectedClipboardUrl)
+                        setDetectedClipboardUrl(null)
+                        toast({ title: "Link Ditempel", description: "URL TikTok dari clipboard telah diisi" })
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 text-xs h-8"
+                    >
+                      Tempel Sekarang
+                    </Button>
+                  </div>
+                )}
 
                 {error && (
                   <Alert variant="destructive" className="mt-6">

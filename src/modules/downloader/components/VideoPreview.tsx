@@ -1,15 +1,42 @@
 "use client"
 
+import type React from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Play, Pause, Volume2, VolumeX, Download, Music, Loader2, ChevronLeft, ChevronRight, User, Calendar, MapPin, Eye, Heart, MessageCircle, Star, Share2, Video, Images } from "lucide-react"
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Download,
+  Music,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Calendar,
+  MapPin,
+  Eye,
+  Heart,
+  MessageCircle,
+  Star,
+  Share2,
+  Video,
+  Images,
+  FolderArchive,
+  Copy,
+  Check,
+  Send,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { useState, useRef, useCallback, useEffect } from "react"
 import useEmblaCarousel from "embla-carousel-react"
+import { useToast } from "@/hooks/use-toast"
 import {
   downloadWithProgress,
+  downloadImagesAsZip,
   generateFilename,
   formatFileSize,
   type DownloadProgress,
@@ -17,15 +44,9 @@ import {
 
 // ============== Helpers ==============
 
-/**
- * Sanitizes a plain-text TikTok caption and converts URLs, @mentions, and
- * #hashtags into safe anchor tags.  Uses textContent assignment to prevent XSS
- * instead of raw string interpolation.
- */
 function makeLinksClickable(text: string): string {
   if (!text) return ""
 
-  // Escape HTML entities first to prevent XSS
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -33,10 +54,8 @@ function makeLinksClickable(text: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
 
-  const linkClass =
-    "text-blue-500 hover:text-blue-700 hover:underline transition-colors"
+  const linkClass = "text-blue-500 hover:text-blue-700 hover:underline transition-colors"
 
-  // URLs
   let processed = escaped.replace(/(https?:\/\/[^\s]+)/g, (url) => {
     try {
       new URL(url)
@@ -46,13 +65,11 @@ function makeLinksClickable(text: string): string {
     }
   })
 
-  // @mentions
   processed = processed.replace(/@([a-zA-Z0-9_.]+)/g, (_, username: string) => {
     const safeUsername = encodeURIComponent(username)
     return `<a href="https://tiktok.com/@${safeUsername}" target="_blank" rel="noopener noreferrer" class="${linkClass}">@${username}</a>`
   })
 
-  // #hashtags
   processed = processed.replace(/#([a-zA-Z0-9_]+)/g, (_, hashtag: string) => {
     const safeHashtag = encodeURIComponent(hashtag)
     return `<a href="https://tiktok.com/tag/${safeHashtag}" target="_blank" rel="noopener noreferrer" class="${linkClass}">#${hashtag}</a>`
@@ -87,7 +104,7 @@ function formatPostedDate(value?: string): string {
   if (!value) return ""
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -97,6 +114,22 @@ function formatPostedDate(value?: string): string {
 function getCreatorProfileUrl(username?: string): string | undefined {
   if (!username) return undefined
   return `https://tiktok.com/@${encodeURIComponent(username)}`
+}
+
+function estimateVideoSize(durationSec?: string): string {
+  if (!durationSec) return "~10-20 MB"
+  const sec = parseInt(durationSec, 10)
+  if (isNaN(sec) || sec <= 0) return "~10-20 MB"
+  const estMb = Math.max(2, Math.round(sec * 0.4))
+  return `~${estMb} MB`
+}
+
+function estimateAudioSize(durationSec?: string): string {
+  if (!durationSec) return "~2-4 MB"
+  const sec = parseInt(durationSec, 10)
+  if (isNaN(sec) || sec <= 0) return "~2-4 MB"
+  const estMb = Math.max(1, (sec * 0.02).toFixed(1) as unknown as number)
+  return `~${estMb} MB`
 }
 
 // ============== Types ==============
@@ -132,16 +165,25 @@ interface VideoPreviewProps {
   onDownloadAudio: () => void
 }
 
-type DownloadType = "video1" | "video2" | "videoHd" | "audio" | "image" | null
+type DownloadType = "video1" | "video2" | "videoHd" | "audio" | "image" | "zip" | null
 
 // ============== Component ==============
 
-export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: VideoPreviewProps) {
+export function VideoPreview({ result }: VideoPreviewProps) {
+  const { toast } = useToast()
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Audio Preview player state
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  // Zip compression state
+  const [zipProgress, setZipProgress] = useState<{ current: number; total: number } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const [downloading, setDownloading] = useState<DownloadType>(null)
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null)
@@ -168,25 +210,36 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
     if (emblaApi) setCurrentSlide(emblaApi.selectedScrollSnap())
   }, [emblaApi])
 
-  // Register carousel select event
   useEffect(() => {
     if (!emblaApi) return
     emblaApi.on("select", onSelect)
-    return () => { emblaApi.off("select", onSelect) }
+    return () => {
+      emblaApi.off("select", onSelect)
+    }
   }, [emblaApi, onSelect])
 
   const isVideo = result.type === "video"
   const mediaUrl = isVideo ? result.videoUrl : result.imageUrls?.[0]
   const imageCount = result.imageUrls?.length ?? 0
-  const creatorLabel = result.creatorName || (result.creatorUsername ? `@${result.creatorUsername}` : result.creator ? `@${result.creator}` : "")
+  const creatorLabel =
+    result.creatorName ||
+    (result.creatorUsername
+      ? `@${result.creatorUsername}`
+      : result.creator
+        ? `@${result.creator}`
+        : "")
   const creatorProfileUrl = getCreatorProfileUrl(result.creatorUsername || result.creator)
   const postLink = result.postUrl || result.url
   const hasMetaHeader = !!(creatorLabel || result.postedAt || result.regionLabel)
-  const hasStats = [result.views, result.likes, result.comments, result.favorites, result.shares].some(
-    (value) => typeof value === "number",
-  )
+  const hasStats = [
+    result.views,
+    result.likes,
+    result.comments,
+    result.favorites,
+    result.shares,
+  ].some((value) => typeof value === "number")
 
-  // ---- Video controls ----
+  // ---- Controls ----
 
   const handlePlayPause = () => {
     if (!videoRef.current) return
@@ -210,7 +263,62 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
     setVideoDuration(videoRef.current.duration)
   }
 
-  // ---- Download ----
+  const handleAudioPlayPause = () => {
+    if (!audioRef.current) return
+    if (isAudioPlaying) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play()
+    }
+    setIsAudioPlaying(!isAudioPlaying)
+  }
+
+  // ---- Quick Share ----
+
+  const handleQuickShare = async () => {
+    const siteUrl = "https://fusiontik.vercel.app"
+    const shareTitle = `FusionTik - TikTok Downloader`
+    const shareText = `Download video/foto TikTok tanpa watermark dari ${creatorLabel || "TikTok"}:`
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: result.url,
+        })
+        toast({ title: "Shared!", description: "Content link shared successfully" })
+        return
+      } catch {
+        // Share cancelled or unavailable
+      }
+    }
+
+    // Fallback: Copy link
+    try {
+      await navigator.clipboard.writeText(result.url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      toast({ title: "Link Salin", description: "Link TikTok telah disalin ke clipboard" })
+    } catch {
+      toast({ title: "FusionTik", description: result.url })
+    }
+  }
+
+  const shareToWhatsApp = () => {
+    const shareText = `Lihat dan download konten TikTok dari ${creatorLabel || "TikTok"} tanpa watermark di FusionTik:\n${result.url}`
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, "_blank")
+  }
+
+  const shareToTelegram = () => {
+    const shareText = `Download konten TikTok tanpa watermark dari ${creatorLabel || "TikTok"}`
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent(result.url)}&text=${encodeURIComponent(shareText)}`,
+      "_blank",
+    )
+  }
+
+  // ---- Download Handlers ----
 
   const handleDownload = async (
     url: string,
@@ -230,12 +338,26 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
     setDownloadProgress(null)
   }
 
+  const handleDownloadAllImagesZip = async () => {
+    if (!result.imageUrls || result.imageUrls.length === 0) return
+    setDownloading("zip")
+    setZipProgress({ current: 0, total: result.imageUrls.length })
+
+    const zipFilename = generateFilename("zip", result.creator)
+    await downloadImagesAsZip(result.imageUrls, zipFilename, (current, total) => {
+      setZipProgress({ current, total })
+    })
+
+    setDownloading(null)
+    setZipProgress(null)
+    toast({ title: "ZIP Ready", description: `${result.imageUrls.length} foto telah di-download ke file .ZIP!` })
+  }
+
   const handleDownloadAllImages = async () => {
     if (!result.imageUrls || result.imageUrls.length === 0) return
     setDownloading("image")
     setDownloadProgress(null)
 
-    // Download images sequentially to avoid browser popup blocking
     for (let i = 0; i < result.imageUrls.length; i++) {
       const filename = generateFilename("image", result.creator, i)
       await downloadWithProgress(result.imageUrls[i], filename)
@@ -245,15 +367,16 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
     setDownloadProgress(null)
   }
 
-  // ---- Render helpers ----
+  // ---- Button Renderer ----
 
   const renderDownloadButton = (
     label: string,
     url: string,
     type: "video" | "audio" | "image",
     downloadType: DownloadType,
-    gradient: string,
+    colorStyle: string,
     icon: React.ReactNode,
+    sizeBadge?: string,
     index?: number,
   ) => {
     const isDownloading = downloading === downloadType
@@ -264,26 +387,23 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
           size="lg"
           onClick={() => handleDownload(url, type, downloadType, index)}
           disabled={!!downloading}
-          className={`w-full ${gradient} text-white font-semibold py-4`}
+          className={`w-full ${colorStyle} text-white font-semibold py-4 flex items-center justify-between px-6 transition-colors`}
         >
-          {isDownloading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Downloading...
-            </>
-          ) : (
-            <>
-              {icon}
-              {label}
-            </>
+          <span className="flex items-center gap-2">
+            {isDownloading ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
+            <span>{isDownloading ? "Mengunduh..." : label}</span>
+          </span>
+          {sizeBadge && (
+            <Badge variant="outline" className="border-white/30 text-white font-normal text-xs px-2 py-0.5">
+              {sizeBadge}
+            </Badge>
           )}
         </Button>
         {isDownloading && downloadProgress && (
-          <div className="space-y-1">
-            <Progress value={downloadProgress.percent} className="h-2" />
+          <div className="space-y-1 pt-1">
+            <Progress value={downloadProgress.percent} className="h-2 bg-muted" />
             <p className="text-xs text-muted-foreground text-center">
-              {downloadProgress.percent}% •{" "}
-              {formatFileSize(downloadProgress.loaded)} /{" "}
+              {downloadProgress.percent}% • {formatFileSize(downloadProgress.loaded)} /{" "}
               {formatFileSize(downloadProgress.total)}
             </p>
           </div>
@@ -295,35 +415,31 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
   // ---- JSX ----
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-4xl mx-auto"
-    >
-      <Card className="overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto">
+      <Card className="overflow-hidden border border-border shadow-lg">
         <CardHeader className="pb-4">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-blue-600">Download Ready!</h2>
+            <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">Download Ready!</h2>
             {result.creator && (
               <p className="text-muted-foreground">
-                Video by{" "}
-                <span className="font-medium text-blue-600">@{result.creator}</span>
+                Konten oleh <span className="font-medium text-blue-500">@{result.creator}</span>
               </p>
             )}
             <div className="flex items-center justify-center gap-3">
               <Badge variant="secondary" className="px-3 py-1 inline-flex items-center gap-1.5">
                 {isVideo ? (
                   <>
-                    <Video className="h-3.5 w-3.5" />
-                    Video
+                    <Video className="h-3.5 w-3.5 text-blue-500" />
+                    <span>Video TikTok</span>
                   </>
                 ) : (
                   <>
-                    <Images className="h-3.5 w-3.5" />
-                    {result.imageUrls && result.imageUrls.length > 0
-                      ? `Photo Mode (${result.imageUrls.length} images)`
-                      : "Image"}
+                    <Images className="h-3.5 w-3.5 text-blue-500" />
+                    <span>
+                      {result.imageUrls && result.imageUrls.length > 0
+                        ? `Photo Mode (${result.imageUrls.length} Foto)`
+                        : "Gambar"}
+                    </span>
                   </>
                 )}
               </Badge>
@@ -333,8 +449,8 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Video / Image Preview */}
-          <div className="relative bg-black rounded-lg overflow-hidden">
+          {/* Video / Image Preview Container */}
+          <div className="relative bg-black rounded-xl overflow-hidden shadow-inner">
             {isVideo && mediaUrl ? (
               <div className="relative">
                 <video
@@ -354,7 +470,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                   <Button
                     size="lg"
                     variant="secondary"
-                    className="rounded-full w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                    className="rounded-full w-16 h-16 bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-transform hover:scale-105"
                     onClick={handlePlayPause}
                   >
                     {isPlaying ? (
@@ -365,13 +481,13 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                   </Button>
                 </div>
 
-                {/* Progress bar */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                {/* Video Progress bar */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                   <div className="flex items-center gap-2 text-white text-sm">
                     <span>{formatTime(currentTime)}</span>
-                    <div className="flex-1 bg-white/20 rounded-full h-1">
+                    <div className="flex-1 bg-white/20 rounded-full h-1.5">
                       <div
-                        className="bg-white rounded-full h-1 transition-all duration-300"
+                        className="bg-blue-400 rounded-full h-1.5 transition-all duration-200"
                         style={{
                           width: `${videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0}%`,
                         }}
@@ -381,23 +497,18 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-white hover:bg-white/20"
+                      className="text-white hover:bg-white/20 p-1.5 h-8 w-8"
                       onClick={handleMuteToggle}
                     >
-                      {isMuted ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
+                      {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="relative bg-gray-100">
+              <div className="relative bg-gray-900">
                 {result.imageUrls && result.imageUrls.length > 0 ? (
                   <>
-                    {/* Embla Carousel */}
                     <div className="overflow-hidden" ref={emblaRef}>
                       <div className="flex">
                         {result.imageUrls.map((imgUrl, index) => (
@@ -407,11 +518,11 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                           >
                             <img
                               src={imgUrl}
-                              alt={`TikTok Image ${index + 1}`}
+                              alt={`TikTok Photo Slide ${index + 1}`}
                               className="max-h-96 w-full object-contain"
                               onError={(e) => {
                                 if (result.thumbnail) {
-                                  (e.target as HTMLImageElement).src = result.thumbnail
+                                  ;(e.target as HTMLImageElement).src = result.thumbnail
                                 }
                               }}
                             />
@@ -420,34 +531,32 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                       </div>
                     </div>
 
-                    {/* Navigation buttons (only show if more than 1 image) */}
                     {imageCount > 1 && (
                       <>
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full w-9 h-9 p-0 bg-black/60 hover:bg-black/80 text-white"
                           onClick={scrollPrev}
                         >
-                          <ChevronLeft className="h-4 w-4" />
+                          <ChevronLeft className="h-5 w-5" />
                         </Button>
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-black/50 hover:bg-black/70 text-white"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full w-9 h-9 p-0 bg-black/60 hover:bg-black/80 text-white"
                           onClick={scrollNext}
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-5 w-5" />
                         </Button>
 
-                        {/* Slide indicator */}
-                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
                           {result.imageUrls.map((_, index) => (
                             <button
                               key={index}
                               className={`w-2 h-2 rounded-full transition-all ${
                                 index === currentSlide
-                                  ? "bg-white scale-125"
+                                  ? "bg-blue-400 scale-125"
                                   : "bg-white/50"
                               }`}
                               onClick={() => {
@@ -458,8 +567,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                           ))}
                         </div>
 
-                        {/* Counter */}
-                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                        <div className="absolute top-2 right-2 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-full">
                           {currentSlide + 1} / {imageCount}
                         </div>
                       </>
@@ -474,7 +582,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center min-h-64 text-gray-500">
+                  <div className="flex items-center justify-center min-h-64 text-gray-400">
                     No preview available
                   </div>
                 )}
@@ -482,21 +590,21 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             )}
           </div>
 
-          {/* Caption */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Caption</h3>
+          {/* Caption & Metadata */}
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            <h3 className="font-semibold text-base text-foreground">Caption & Informasi</h3>
 
             {hasMetaHeader && (
               <div className="space-y-2 text-sm text-muted-foreground">
                 {creatorLabel && (
                   <div className="flex items-start gap-2">
-                    <User className="h-4 w-4 shrink-0 mt-0.5" />
+                    <User className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
                     {creatorProfileUrl ? (
                       <a
                         href={creatorProfileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                        className="text-blue-500 hover:underline font-medium"
                       >
                         {creatorLabel}
                       </a>
@@ -508,12 +616,12 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
 
                 {result.postedAt && (
                   <div className="flex items-start gap-2">
-                    <Calendar className="h-4 w-4 shrink-0 mt-0.5" />
+                    <Calendar className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
                     <a
                       href={postLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 hover:underline"
+                      className="text-blue-500 hover:underline"
                     >
                       {formatPostedDate(result.postedAt)}
                     </a>
@@ -522,7 +630,7 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
 
                 {result.regionLabel && (
                   <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                    <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
                     <span>{result.regionLabel}</span>
                   </div>
                 )}
@@ -531,44 +639,44 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
 
             {result.description ? (
               <div
-                className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap text-sm"
+                className="text-foreground leading-relaxed whitespace-pre-wrap text-sm"
                 dangerouslySetInnerHTML={{ __html: makeLinksClickable(result.description) }}
               />
             ) : (
-              <div className="text-gray-500 dark:text-gray-400 text-sm italic">
-                No caption available for this content
+              <div className="text-muted-foreground text-sm italic">
+                Tidak ada deskripsi caption untuk konten ini
               </div>
             )}
 
             {hasStats && (
-              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-sm text-muted-foreground">
+              <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2 border-t border-border/50 text-sm text-muted-foreground">
                 {typeof result.views === "number" && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 text-blue-500" />
                     {formatCount(result.views)}
                   </span>
                 )}
                 {typeof result.likes === "number" && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Heart className="h-4 w-4" />
+                    <Heart className="h-4 w-4 text-red-500" />
                     {formatCount(result.likes)}
                   </span>
                 )}
                 {typeof result.comments === "number" && (
                   <span className="inline-flex items-center gap-1.5">
-                    <MessageCircle className="h-4 w-4" />
+                    <MessageCircle className="h-4 w-4 text-green-500" />
                     {formatCount(result.comments)}
                   </span>
                 )}
                 {typeof result.favorites === "number" && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Star className="h-4 w-4" />
+                    <Star className="h-4 w-4 text-yellow-500" />
                     {formatCount(result.favorites)}
                   </span>
                 )}
                 {typeof result.shares === "number" && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-4 w-4 text-purple-500" />
                     {formatCount(result.shares)}
                   </span>
                 )}
@@ -576,82 +684,161 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
             )}
           </div>
 
-          {/* Download Buttons */}
+          {/* AUDIO PLAYER PREVIEW */}
+          {result.audioUrl && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Music className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-semibold text-foreground">Audio Preview (MP3)</span>
+                </div>
+                <Badge variant="outline" className="border-blue-500/30 text-blue-500 text-xs">
+                  Original Sound
+                </Badge>
+              </div>
+
+              <audio
+                ref={audioRef}
+                src={result.audioUrl}
+                controls
+                className="w-full h-10 rounded-md"
+                onPlay={() => setIsAudioPlaying(true)}
+                onPause={() => setIsAudioPlaying(false)}
+                onEnded={() => setIsAudioPlaying(false)}
+              />
+            </div>
+          )}
+
+          {/* DOWNLOAD ACTION BUTTONS & FILE SIZE INDICATORS */}
           <div className="space-y-3">
             {isVideo && result.videos && result.videos.length > 0 ? (
               <div className="space-y-2">
                 {renderDownloadButton(
-                  "UNDUH MP4 [1]",
+                  "UNDUH MP4 HD (Tanpa Watermark)",
                   result.videos[0],
                   "video",
                   "video1",
-                  "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
-                  <Download className="mr-2 h-5 w-5" />,
+                  "bg-blue-600 hover:bg-blue-700",
+                  <Download className="h-5 w-5" />,
+                  estimateVideoSize(result.duration),
                 )}
 
                 {result.videoHdUrl &&
                   renderDownloadButton(
-                    "UNDUH MP4 [2]",
+                    "UNDUH MP4 HD [Ultra]",
                     result.videoHdUrl,
                     "video",
                     "videoHd",
-                    "bg-gradient-to-r from-red-600 to-pink-500 hover:from-red-700 hover:to-pink-600",
-                    <Download className="mr-2 h-5 w-5" />,
-                  )}
-
-                {result.videos.length > 1 &&
-                  renderDownloadButton(
-                    "UNDUH MP4 HD",
-                    result.videos[1],
-                    "video",
-                    "video2",
-                    "bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600",
-                    <Download className="mr-2 h-5 w-5" />,
+                    "bg-emerald-600 hover:bg-emerald-700",
+                    <Download className="h-5 w-5" />,
+                    "Full Quality",
                   )}
               </div>
             ) : isVideo ? (
               renderDownloadButton(
-                "UNDUH MP4",
+                "UNDUH MP4 (Tanpa Watermark)",
                 result.videoUrl ?? "",
                 "video",
                 "video1",
-                "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600",
-                <Download className="mr-2 h-5 w-5" />,
+                "bg-blue-600 hover:bg-blue-700",
+                <Download className="h-5 w-5" />,
+                estimateVideoSize(result.duration),
               )
             ) : (
-              <Button
-                size="lg"
-                onClick={handleDownloadAllImages}
-                disabled={!!downloading}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-semibold py-4"
-              >
-                {downloading === "image" ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-5 w-5" />
-                    UNDUH GAMBAR ({result.imageUrls?.length ?? 0})
-                  </>
-                )}
-              </Button>
+              <div className="space-y-2">
+                {/* 1-CLICK ZIP DOWNLOAD BUTTON */}
+                <Button
+                  size="lg"
+                  onClick={handleDownloadAllImagesZip}
+                  disabled={!!downloading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 flex items-center justify-between px-6 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    {downloading === "zip" ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <FolderArchive className="h-5 w-5 text-yellow-300" />
+                    )}
+                    <span>
+                      {downloading === "zip"
+                        ? zipProgress
+                          ? `Mengompres ${zipProgress.current}/${zipProgress.total} foto...`
+                          : "Mengompres ke ZIP..."
+                        : `UNDUH SEMUA FOTO (.ZIP)`}
+                    </span>
+                  </span>
+                  <Badge variant="outline" className="border-white/30 text-white text-xs">
+                    {result.imageUrls?.length ?? 0} Foto • 1-Klik ZIP
+                  </Badge>
+                </Button>
+
+                {/* Individual slide download fallback */}
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleDownloadAllImages}
+                  disabled={!!downloading}
+                  className="w-full border-border text-foreground hover:bg-accent font-medium py-3"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Unduh Foto Satu-Per-Satu ({result.imageUrls?.length ?? 0} Gambar)
+                </Button>
+              </div>
             )}
 
+            {/* AUDIO MP3 DOWNLOAD BUTTON WITH ESTIMATED SIZE */}
             {result.audioUrl &&
               renderDownloadButton(
-                "UNDUH MP3",
+                "UNDUH MP3 (Ekstrak Audio)",
                 result.audioUrl,
                 "audio",
                 "audio",
-                "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600",
-                <Music className="mr-2 h-5 w-5" />,
+                "bg-purple-600 hover:bg-purple-700",
+                <Music className="h-5 w-5" />,
+                estimateAudioSize(result.duration),
               )}
           </div>
 
+          {/* QUICK SHARE BUTTONS */}
+          <div className="pt-3 border-t border-border/60">
+            <p className="text-xs text-muted-foreground mb-2 text-center font-medium">
+              Bagikan Konten Ini (Quick Share)
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleQuickShare}
+                className="w-full text-xs font-medium border-border hover:bg-accent"
+              >
+                {copied ? <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                {copied ? "Link Salin!" : "Salin Link"}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareToWhatsApp}
+                className="w-full text-xs font-medium border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              >
+                <Send className="mr-1.5 h-3.5 w-3.5" />
+                WhatsApp
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={shareToTelegram}
+                className="w-full text-xs font-medium border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 col-span-2 sm:col-span-1"
+              >
+                <Share2 className="mr-1.5 h-3.5 w-3.5" />
+                Telegram
+              </Button>
+            </div>
+          </div>
+
           {/* Additional Info */}
-          <div className="text-sm text-muted-foreground space-y-1">
+          <div className="text-xs text-muted-foreground space-y-1 pt-2">
             <div className="flex items-center gap-2">
               <span>Original URL:</span>
               <a
@@ -664,12 +851,11 @@ export function VideoPreview({ result, onDownloadVideo, onDownloadAudio }: Video
               </a>
             </div>
             {isVideo && result.duration && (
-              <div>Duration: {formatResultDuration(result.duration)}</div>
+              <div>Durasi: {formatResultDuration(result.duration)}</div>
             )}
-            {result.size && <div>Size: {result.size}</div>}
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }
