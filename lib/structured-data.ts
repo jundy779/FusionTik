@@ -56,7 +56,7 @@ export function buildOrganizationSchema() {
     url: siteConfig.url,
     logo: `${siteConfig.url}/placeholder-logo.svg`,
     description: siteConfig.description,
-    sameAs: [],
+    sameAs: ["https://www.wikidata.org/wiki/Q48008408"],
   }
 }
 
@@ -136,6 +136,23 @@ export function buildHowToSchema() {
   }
 }
 
+export function buildSpeakableSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "FusionTik TikTok Downloader",
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["#about h2", "#about p", "#faq h2"],
+    },
+    about: {
+      "@type": "Thing",
+      name: "TikTok",
+      sameAs: "https://www.wikidata.org/wiki/Q48008408",
+    },
+  }
+}
+
 export function buildBreadcrumbSchema() {
   return {
     "@context": "https://schema.org",
@@ -158,6 +175,7 @@ export function buildGlobalStructuredData() {
     buildWebApplicationSchema(),
     buildHowToSchema(),
     buildFaqSchema(),
+    buildSpeakableSchema(),
     buildBreadcrumbSchema(),
   ]
 }

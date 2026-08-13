@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "FusionTik TikTok Downloader",
+  "name_for_model": "fusiontik_tiktok_downloader",
+  "description_for_human": "Download TikTok videos without watermark, MP3 audio, and Photo Mode images.",
+  "description_for_model": "Plugin for extracting TikTok no-watermark MP4 videos, MP3 background audio, and Photo Mode carousel images by URL. Provide a TikTok link (vt.tiktok.com or tiktok.com/@user/video/...) and get downloadable media URLs.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://fusiontik.vercel.app/api/openapi.json"
+  },
+  "logo_url": "https://fusiontik.vercel.app/placeholder-logo.svg",
+  "contact_email": "fusionifydigital@gmail.com",
+  "legal_info_url": "https://fusiontik.vercel.app/terms"
+}
