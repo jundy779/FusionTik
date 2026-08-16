@@ -9,7 +9,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}"
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "zip": "node scripts/create-zip.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
